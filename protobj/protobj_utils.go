@@ -3,6 +3,7 @@ package protobj
 import (
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
 )
 
@@ -34,6 +35,8 @@ type Void struct{}
 var Empty = Void{}
 
 func PrintErrorAndExit(err string) {
-	println(err)
+	stack := debug.Stack()
+
+	println(err + "\n" + string(stack) + "\n")
 	os.Exit(-1)
 }

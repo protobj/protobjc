@@ -34,6 +34,50 @@ const (
 	FMessage FieldType = 20
 )
 
+func FieldTypeValueOf(fieldType string) (FieldType, error) {
+	switch fieldType {
+	case "bool":
+		return BOOL, nil
+	case "i8":
+		return I8, nil
+	case "u8":
+		return U8, nil
+	case "i16":
+		return I16, nil
+	case "u16":
+		return U16, nil
+	case "i32":
+		return I32, nil
+	case "u32":
+		return U32, nil
+	case "s32":
+		return S32, nil
+	case "f32":
+		return F32, nil
+	case "sf32":
+		return SF32, nil
+	case "i64":
+		return I64, nil
+	case "u64":
+		return U64, nil
+	case "s64":
+		return S64, nil
+	case "f64":
+		return F64, nil
+	case "sf64":
+		return SF64, nil
+	case "string":
+		return STRING, nil
+	case "double":
+		return DOUBLE, nil
+	case "float":
+		return FLOAT, nil
+	case "map":
+		return MAP, nil
+	}
+	return 0, errors.New("error fieldType:" + fieldType)
+}
+
 func (receiver FieldType) Value() FieldTypeValue {
 	return FieldTypeMap[int(receiver)]
 }
@@ -155,10 +199,23 @@ type MessageConfig struct {
 	Name                  string
 	Note                  string
 	MessageIndex          int32
-	FieldConfigMap        map[int32]FieldConfig
-	ChildMessageConfigMap map[int32]MessageConfig
+	FieldConfigMap        map[int32]*FieldConfig
+	ChildMessageConfigMap map[int32]*MessageConfig
 	ExtMessage            *MessageConfig
 	ExtField              *FieldConfig
+}
+
+func NewMessageConfig(fileName string, importMessages map[string]Void, pkg string,
+	messageType MessageType, messageName string) *MessageConfig {
+	return &MessageConfig{
+		FileName:              fileName,
+		Pkg:                   pkg,
+		ImportMessages:        importMessages,
+		MessageType:           messageType,
+		Name:                  messageName,
+		FieldConfigMap:        map[int32]*FieldConfig{},
+		ChildMessageConfigMap: map[int32]*MessageConfig{},
+	}
 }
 
 func (c *MessageConfig) GetFullName() string {
@@ -166,18 +223,18 @@ func (c *MessageConfig) GetFullName() string {
 }
 
 func (c *MessageConfig) AddSelfToChildMap() {
-	c.ChildMessageConfigMap[c.MessageIndex] = *c
+	c.ChildMessageConfigMap[c.MessageIndex] = c
 }
 
 func (c *MessageConfig) setParent(extMessage *MessageConfig, extField *FieldConfig) error {
 	if c.ExtMessage != nil {
-		return errors.New(fmt.Sprintf("modifier:[ext]  only has one in message: %s", c.GetFullName()))
+		return errors.New(fmt.Sprintf("modifier:[ext]  only has one in message: %s field:%s", c.GetFullName(), extField.GetDefinition()))
 	}
 	c.ExtMessage = extMessage
 	c.ExtField = extField
 	if len(c.ChildMessageConfigMap) > 0 {
 		for _, messageConfig := range c.ChildMessageConfigMap {
-			err := c.ExtMessage.addChild(&messageConfig)
+			err := c.ExtMessage.addChild(messageConfig)
 			if err != nil {
 				return err
 			}
@@ -191,7 +248,7 @@ func (c *MessageConfig) addChild(childMessage *MessageConfig) error {
 		return errors.New(fmt.Sprintf("parent message index must > 0 :%s", c.GetFullName()))
 	}
 	if childMessage.MessageIndex <= c.MessageIndex {
-		return errors.New(fmt.Sprintf("child index must gt parent index parent:%d child:%d", c.MessageIndex, childMessage.MessageIndex))
+		return errors.New(fmt.Sprintf("child index must gt parent index parent:%s:%d child:%s:%d", c.GetFullName(), c.MessageIndex, childMessage.GetFullName(), childMessage.MessageIndex))
 	}
 	old, ok := c.ChildMessageConfigMap[childMessage.MessageIndex]
 	if ok {
@@ -204,19 +261,6 @@ func (c *MessageConfig) addChild(childMessage *MessageConfig) error {
 		}
 	}
 	return nil
-}
-
-func NewMessageConfig(fileName string, importMessages map[string]Void, pkg string,
-	messageType MessageType, messageName string) *MessageConfig {
-	return &MessageConfig{
-		FileName:              fileName,
-		Pkg:                   pkg,
-		ImportMessages:        importMessages,
-		MessageType:           messageType,
-		Name:                  messageName,
-		FieldConfigMap:        map[int32]FieldConfig{},
-		ChildMessageConfigMap: map[int32]MessageConfig{},
-	}
 }
 
 type FieldConfig struct {

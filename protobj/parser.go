@@ -9,55 +9,50 @@ import (
 	"sync"
 )
 
-func Load(fileList []string) map[string]MessageConfig {
+func Load(fileList []string) map[string]*MessageConfig {
 	var lock sync.Mutex
-	m := map[string]MessageConfig{}
+	m := map[string]*MessageConfig{}
 	if len(fileList) == 0 {
 		return m
 	}
 	var countDown sync.WaitGroup
 	countDown.Add(len(fileList))
 	for _, fileName := range fileList {
-		fileName := fileName
-		go func() {
-			stream, err := antlr.NewFileStream(fileName)
+		go func(file string) {
+			stream, err := antlr.NewFileStream(file)
 			if nil != err {
-				panic(fmt.Sprintf("read file err : %s", fileName))
+				panic(fmt.Sprintf("read file err : %s", file))
 			}
 			protobjLexer := selfAntlr.NewProtobjLexer(stream)
 			tokenStream := antlr.NewCommonTokenStream(protobjLexer, 0)
-			for _, token := range tokenStream.GetAllTokens() {
-				println(token.GetChannel())
-			}
 			protobjParser := selfAntlr.NewProtobjParser(tokenStream)
-			protobjFileReader := newProtobjFileReader(fileName, tokenStream)
-			protobjParser.AddErrorListener(&ProtobjErrorListener{fileName: fileName})
+			protobjFileReader := newProtobjFileReader(file, tokenStream)
+			protobjParser.AddErrorListener(&ProtobjErrorListener{fileName: file})
 			walker := antlr.NewParseTreeWalker()
 			walker.Walk(protobjFileReader, protobjParser.Protobj())
 			for name, config := range protobjFileReader.messageConfigMap {
 				putMessageConfig(&lock, m, name, config)
 			}
 			countDown.Done()
-		}()
+		}(fileName)
 	}
 	countDown.Wait()
 
 	for _, messageConfig := range m {
-		messageConfig := &messageConfig
 		if messageConfig.MessageType == MESSAGE {
 			countDown.Add(1)
-			go func() {
-				check(m, messageConfig)
-				afterCheck(messageConfig)
+			go func(message *MessageConfig) {
+				check(m, message)
+				afterCheck(message)
 				countDown.Done()
-			}()
+			}(messageConfig)
 		}
 	}
 	countDown.Wait()
 	return m
 }
 
-func check(messageConfigMap map[string]MessageConfig, messageConfig *MessageConfig) {
+func check(messageConfigMap map[string]*MessageConfig, messageConfig *MessageConfig) {
 	//import message check
 	for k, _ := range messageConfig.ImportMessages {
 		_, ok := messageConfigMap[k]
@@ -68,18 +63,18 @@ func check(messageConfigMap map[string]MessageConfig, messageConfig *MessageConf
 	for _, fieldConfig := range messageConfig.FieldConfigMap {
 		typeName := fieldConfig.TypeName
 		var messageFullName string
-		_, ok := FieldTypeMap[typeName]
-		if ok {
+		_, err := FieldTypeValueOf(typeName)
+		if err == nil {
 			if typeName == "map" {
-				messageFullName = checkMessageFieldExists(messageConfigMap, messageConfig, &fieldConfig, fieldConfig.ValueTypeName)
+				messageFullName = checkMessageFieldExists(messageConfigMap, messageConfig, fieldConfig, fieldConfig.ValueTypeName)
 				if len(messageFullName) > 0 {
 					fieldConfig.ValueTypeFullName = messageFullName
 				}
 			}
 		} else {
-			messageFullName = checkMessageFieldExists(messageConfigMap, messageConfig, &fieldConfig, fieldConfig.TypeName)
+			messageFullName = checkMessageFieldExists(messageConfigMap, messageConfig, fieldConfig, fieldConfig.TypeName)
 			if len(messageFullName) > 0 {
-				fieldConfig.ValueTypeFullName = messageFullName
+				fieldConfig.TypeFullName = messageFullName
 			}
 		}
 
@@ -94,10 +89,10 @@ func check(messageConfigMap map[string]MessageConfig, messageConfig *MessageConf
 		}
 		if fieldConfig.Modifier == EXT {
 			message := messageConfigMap[messageFullName]
-			if &message == messageConfig {
+			if message == messageConfig {
 				PrintErrorAndExit(fmt.Sprintf("field is not parent %s %s", fieldConfig.FieldName, messageConfig.GetFullName()))
 			}
-			err := messageConfig.setParent(&message, &fieldConfig)
+			err := messageConfig.setParent(message, fieldConfig)
 			if err != nil {
 				PrintErrorAndExit(err.Error())
 			}
@@ -109,9 +104,9 @@ func check(messageConfigMap map[string]MessageConfig, messageConfig *MessageConf
 	}
 }
 
-func checkMessageFieldExists(configMap map[string]MessageConfig, messageConfig *MessageConfig, fieldConfig *FieldConfig, typeName string) string {
-	_, ok := FieldTypeMap[typeName]
-	if !ok {
+func checkMessageFieldExists(configMap map[string]*MessageConfig, messageConfig *MessageConfig, fieldConfig *FieldConfig, typeName string) string {
+	_, err := FieldTypeValueOf(typeName)
+	if err != nil {
 		fullName := messageConfig.Pkg + "." + typeName
 		_, exists := configMap[fullName]
 		if exists {
@@ -147,13 +142,13 @@ func (c *ProtobjErrorListener) SyntaxError(recognizer antlr.Recognizer, offendin
 	panic(fmt.Sprintf("%s line %d:%d %s", c.fileName, line, column, msg))
 }
 
-func putMessageConfig(lock *sync.Mutex, messageMap map[string]MessageConfig,
-	name string, message MessageConfig) {
+func putMessageConfig(lock *sync.Mutex, messageMap map[string]*MessageConfig,
+	name string, message *MessageConfig) {
 	lock.Lock()
 	defer lock.Unlock()
 	old, ok := messageMap[name]
 	if ok {
-		panic(fmt.Sprintf("%s and %s duplicate message def :%s", old.FileName, message.FileName, message.Name))
+		PrintErrorAndExit(fmt.Sprintf("%s and %s duplicate message def :%s", old.FileName, message.FileName, message.Name))
 	}
 	messageMap[name] = message
 }
@@ -163,7 +158,7 @@ type protobjFileReader struct {
 	fileName          string
 	pkg               string
 	importMessages    map[string]Void
-	messageConfigMap  map[string]MessageConfig
+	messageConfigMap  map[string]*MessageConfig
 	commonTokenStream *antlr.CommonTokenStream
 	exitsExtendField  *FieldConfig
 }
@@ -172,16 +167,17 @@ func newProtobjFileReader(fileName string, tokenStream *antlr.CommonTokenStream)
 	return &protobjFileReader{
 		fileName:          fileName,
 		commonTokenStream: tokenStream,
-		messageConfigMap:  map[string]MessageConfig{},
+		messageConfigMap:  map[string]*MessageConfig{},
 		importMessages:    map[string]Void{},
 	}
 }
+func (s *protobjFileReader) EnterPackageStatement(ctx *selfAntlr.PackageStatementContext) {
+	s.pkg = ctx.GetChild(1).(antlr.ParseTree).GetText()
+}
+
 func (s *protobjFileReader) EnterImportStatement(ctx *selfAntlr.ImportStatementContext) {
 	importMessage := ctx.GetChild(1).(antlr.ParseTree).GetText()
 	s.importMessages[importMessage] = Empty
-}
-func (s *protobjFileReader) EnterPackageStatement(ctx *selfAntlr.PackageStatementContext) {
-	s.pkg = ctx.GetChild(1).(antlr.ParseTree).GetText()
 }
 func (s *protobjFileReader) EnterMessageDef(ctx *selfAntlr.MessageDefContext) {
 	messageName := ctx.MessageName().GetText()
@@ -242,8 +238,8 @@ func (s *protobjFileReader) EnterEnumDef(ctx *selfAntlr.EnumDefContext) {
 }
 
 func (s *protobjFileReader) checkMessageName(token antlr.Token, messageName string) {
-	_, ok := FieldTypeMap[messageName]
-	if ok {
+	_, err := FieldTypeValueOf(messageName)
+	if err == nil {
 		s.printErrorAndExit(token, "message name is builtin type")
 	}
 }
@@ -366,7 +362,7 @@ func (s *protobjFileReader) putField(messageConfig *MessageConfig, fieldConfig *
 	if ok {
 		s.printErrorAndExit(token, fmt.Sprintf("field num duplicate: %d in %s", fieldConfig.FieldNum, messageConfig.GetFullName()))
 	}
-	messageConfig.FieldConfigMap[fieldConfig.FieldNum] = *fieldConfig
+	messageConfig.FieldConfigMap[fieldConfig.FieldNum] = fieldConfig
 }
 
 func (s *protobjFileReader) putMessage(messageConfig *MessageConfig, token antlr.Token) {
@@ -374,7 +370,7 @@ func (s *protobjFileReader) putMessage(messageConfig *MessageConfig, token antlr
 	if ok {
 		s.printErrorAndExit(token, fmt.Sprintf("message def duplicate %s", old.GetFullName()))
 	}
-	s.messageConfigMap[messageConfig.GetFullName()] = *messageConfig
+	s.messageConfigMap[messageConfig.GetFullName()] = messageConfig
 }
 
 func (s *protobjFileReader) parseMapField(messageConfig *MessageConfig, mapField selfAntlr.IMapFieldContext) *FieldConfig {

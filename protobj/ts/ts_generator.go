@@ -6,7 +6,7 @@ type Generator struct {
 	protobj.BaseGenerator
 }
 
-func NewGenerator(messageMap map[string]protobj.MessageConfig, config protobj.ParsedArgs) *Generator {
+func NewGenerator(messageMap map[string]*protobj.MessageConfig, config protobj.ParsedArgs) *Generator {
 	return &Generator{protobj.BaseGenerator{
 		MessageConfigMap: messageMap,
 		Config:           config,

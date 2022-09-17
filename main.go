@@ -49,6 +49,7 @@ func main() {
 
 	files := getFiles(parsedArgs.SourceDir)
 	messageMap := protobj.Load(files)
+
 	switch parsedArgs.LanguageType {
 	case protobj.JAVA:
 		java.NewGenerator(messageMap, parsedArgs).Generate()

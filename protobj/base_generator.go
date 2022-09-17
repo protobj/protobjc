@@ -7,7 +7,7 @@ import (
 )
 
 type BaseGenerator struct {
-	MessageConfigMap map[string]MessageConfig
+	MessageConfigMap map[string]*MessageConfig
 	Config           ParsedArgs
 }
 
@@ -19,16 +19,16 @@ func (b *BaseGenerator) FindMessage(source MessageConfig, messageFullName string
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("message not found:%s in %s:%s", messageFullName, source.FileName, source.Name))
 	}
-	return &messageConfig, nil
+	return messageConfig, nil
 }
 func (b *BaseGenerator) GetFieldType(sourceMessage MessageConfig, typeName string, typeFullName string) (FieldType, error) {
-	fieldType, ok := FieldTypeMap[typeName]
-	if ok {
+	fieldType, err := FieldTypeValueOf(typeName)
+	if err == nil {
 		return fieldType, nil
 	}
 	message, err := b.FindMessage(sourceMessage, typeFullName)
 	if err != nil {
-		return FieldType{}, err
+		return 0, err
 	}
 	return message.MessageType.toFieldType(), nil
 }

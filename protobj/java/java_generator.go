@@ -9,7 +9,7 @@ type Generator struct {
 	BaseGenerator
 }
 
-func NewGenerator(messageMap map[string]MessageConfig, config ParsedArgs) *Generator {
+func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Generator {
 	return &Generator{BaseGenerator: BaseGenerator{
 		MessageConfigMap: messageMap,
 		Config:           config,
@@ -22,21 +22,21 @@ func (b *Generator) LanguageType() LanguageType {
 func (b *Generator) Generate() {
 	messageConfigMap := b.MessageConfigMap
 	var waitGroup sync.WaitGroup
-	var fileContentsChan = make(chan FileContent)
+	var fileContentsChan = make(chan *FileContent)
 	for _, messageConfig := range messageConfigMap {
 		if b.Config.OutputType != O_SCHEMA {
 			waitGroup.Add(1)
-			go func() {
-				fileContent := b.createMessage(&messageConfig)
-				fileContentsChan <- *fileContent
-			}()
+			go func(message *MessageConfig) {
+				fileContent := b.createMessage(message)
+				fileContentsChan <- fileContent
+			}(messageConfig)
 		}
 		if b.Config.OutputType != O_MESSAGE {
 			waitGroup.Add(1)
-			go func() {
-				fileContent := b.createSchema(&messageConfig)
-				fileContentsChan <- *fileContent
-			}()
+			go func(message *MessageConfig) {
+				fileContent := b.createSchema(message)
+				fileContentsChan <- fileContent
+			}(messageConfig)
 		}
 
 	}
@@ -48,9 +48,9 @@ func (b *Generator) Generate() {
 		if !ok {
 			break
 		}
-		go func() {
-			WriteFile(b.Config.OutputDir, &fileContent)
-		}()
+		go func(content *FileContent) {
+			WriteFile(b.Config.OutputDir, fileContent)
+		}(fileContent)
 	}
 	waitGroup.Wait()
 }
@@ -77,7 +77,7 @@ func (b *Generator) createEnumClass(m *MessageConfig) *FileContent {
 }
 
 func (b *Generator) createMessageClass(m *MessageConfig) *FileContent {
-
+	return nil
 }
 
 func (b *Generator) createSchema(m *MessageConfig) *FileContent {
