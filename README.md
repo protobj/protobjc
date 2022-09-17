@@ -1,6 +1,7 @@
-# protobj-go-generator
+# protobjc
 
-跨平台序列化框架，使用protobuf序列化格式，扩展了一些语法
+跨平台序列化框架protobj的编译器，使用protobuf序列化格式，扩展了一些语法。
+
 
 ## example
 ### message
