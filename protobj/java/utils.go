@@ -15,7 +15,7 @@ const CONTINUE = "continue;"
 const LAMBDA = "() -> "
 
 func pkg(pkg string) string {
-	return I("package ${0}", pkg)
+	return I("package ${0};", pkg)
 }
 
 func notNull(value string) string {
@@ -51,10 +51,10 @@ func appendImportMessagesForJava(sourcePackage string, header *CodeBuilder) {
 		o1 := importList[i]
 		o2 := importList[j]
 		if strings.HasPrefix(o1, javaCoreLibPrefix) && !strings.HasPrefix(o2, javaCoreLibPrefix) {
-			return true
+			return false
 		}
 		if strings.HasPrefix(o2, javaCoreLibPrefix) && !strings.HasPrefix(o1, javaCoreLibPrefix) {
-			return false
+			return true
 		}
 		return strings.Compare(o1, o2) < 0
 	})
@@ -72,7 +72,7 @@ func appendImportMessagesForJava(sourcePackage string, header *CodeBuilder) {
 }
 
 func distinctPackageForJava(pkg string, importMessages map[string]Void) []string {
-	var importList = make([]string, 10)
+	var importList []string
 	for k := range importMessages {
 		lastIndex := strings.LastIndex(k, ".")
 		if lastIndex < 0 || k[:lastIndex] != pkg {

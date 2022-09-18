@@ -12,6 +12,13 @@ type FileContent struct {
 	content  string
 }
 
+func NewFileContent(fileName, content string) *FileContent {
+	return &FileContent{
+		fileName: fileName,
+		content:  content,
+	}
+}
+
 func WriteFile(outputDir string, content *FileContent) {
 	index := strings.LastIndex(content.fileName, string(os.PathSeparator))
 	subDir := content.fileName[0:index]
@@ -21,7 +28,7 @@ func WriteFile(outputDir string, content *FileContent) {
 		PrintErrorAndExit(err.Error())
 		return
 	}
-	filePath = filepath.Join(filePath, content.fileName)
+	filePath = filepath.Join(outputDir, content.fileName)
 
 	err = os.WriteFile(filePath, []byte(content.content), os.ModePerm)
 	if err != nil {

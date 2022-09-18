@@ -6,12 +6,21 @@ import (
 	"strings"
 )
 
+type IGenerator interface {
+	FindMessage(source *MessageConfig, messageFullName string) (*MessageConfig, error)
+	GetFieldType(sourceMessage *MessageConfig, typeName string, typeFullName string) (FieldType, error)
+	LanguageType() LanguageType
+	Generate()
+	GetReader(modifier2FieldType Modifier2FieldType) IFieldReader
+	GetWriter(modifier2FieldType Modifier2FieldType) IFieldWriter
+}
+
 type BaseGenerator struct {
 	MessageConfigMap map[string]*MessageConfig
 	Config           ParsedArgs
 }
 
-func (b *BaseGenerator) FindMessage(source MessageConfig, messageFullName string) (*MessageConfig, error) {
+func (b *BaseGenerator) FindMessage(source *MessageConfig, messageFullName string) (*MessageConfig, error) {
 	if len(messageFullName) == 0 {
 		return nil, errors.New(fmt.Sprintf("message not found:%s in %s:%s", "nil", source.FileName, source.Name))
 	}
@@ -21,7 +30,7 @@ func (b *BaseGenerator) FindMessage(source MessageConfig, messageFullName string
 	}
 	return messageConfig, nil
 }
-func (b *BaseGenerator) GetFieldType(sourceMessage MessageConfig, typeName string, typeFullName string) (FieldType, error) {
+func (b *BaseGenerator) GetFieldType(sourceMessage *MessageConfig, typeName string, typeFullName string) (FieldType, error) {
 	fieldType, err := FieldTypeValueOf(typeName)
 	if err == nil {
 		return fieldType, nil
@@ -135,4 +144,75 @@ func (b *CodeBuilder) addLine(value string) {
 		b.append0(value)
 	}
 
+}
+
+type IFieldWriter interface {
+	Modifier() Modifier
+	FocusTypes() map[FieldType]Void
+	Write(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, value string)
+	WritePacked(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType, value string)
+}
+
+type FieldWriter struct {
+}
+
+func (f *FieldWriter) FocusTypes() map[FieldType]Void {
+	panic("UnsupportedOperation")
+}
+
+func (f *FieldWriter) Modifier() Modifier {
+	panic("UnsupportedOperation")
+}
+func (f *FieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, value string) {
+	panic("UnsupportedOperation")
+}
+func (f *FieldWriter) WritePacked(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType, value string) {
+
+}
+
+type IFieldReader interface {
+	Modifier() Modifier
+	FocusTypes() map[FieldType]Void
+	Read(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, getValue, setValue string)
+	ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType)
+}
+
+type FieldReader struct {
+}
+
+func (f *FieldReader) FocusTypes() map[FieldType]Void {
+	panic("UnsupportedOperation")
+}
+
+func (f *FieldReader) Modifier() Modifier {
+	panic("UnsupportedOperation")
+}
+
+func (f *FieldReader) Read(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, getValue, setValue string) {
+	panic("UnsupportedOperation")
+}
+
+func (f *FieldReader) ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType) {
+	panic("UnsupportedOperation")
+}
+
+type MapKeyValueFieldType struct {
+	keyType   FieldType
+	valueType FieldType
+}
+
+func NewMapKeyValueFieldType(keyType, valueType FieldType) MapKeyValueFieldType {
+	return MapKeyValueFieldType{keyType: keyType, valueType: valueType}
+}
+
+type Modifier2FieldType struct {
+	modifier  Modifier
+	fieldType FieldType
+}
+
+func NewModifier2FieldType(modifier Modifier, fieldType FieldType) Modifier2FieldType {
+	return Modifier2FieldType{
+		modifier:  modifier,
+		fieldType: fieldType,
+	}
 }

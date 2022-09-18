@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -83,7 +84,7 @@ func (receiver FieldType) Value() FieldTypeValue {
 }
 
 type FieldTypeValue struct {
-	fieldType FieldType
+	FieldType FieldType
 	JavaType  string
 	GoType    string
 }
@@ -217,24 +218,34 @@ func NewMessageConfig(fileName string, importMessages map[string]Void, pkg strin
 		ChildMessageConfigMap: map[int32]*MessageConfig{},
 	}
 }
-
-func (c *MessageConfig) GetFullName() string {
-	return fmt.Sprintf("%s.%s", c.Pkg, c.Name)
-}
-
-func (c *MessageConfig) AddSelfToChildMap() {
-	c.ChildMessageConfigMap[c.MessageIndex] = c
-}
-
-func (c *MessageConfig) setParent(extMessage *MessageConfig, extField *FieldConfig) error {
-	if c.ExtMessage != nil {
-		return errors.New(fmt.Sprintf("modifier:[ext]  only has one in message: %s field:%s", c.GetFullName(), extField.GetDefinition()))
+func (m *MessageConfig) GetSortedFields() []*FieldConfig {
+	var fieldList []*FieldConfig
+	for _, config := range m.FieldConfigMap {
+		fieldList = append(fieldList, config)
 	}
-	c.ExtMessage = extMessage
-	c.ExtField = extField
-	if len(c.ChildMessageConfigMap) > 0 {
-		for _, messageConfig := range c.ChildMessageConfigMap {
-			err := c.ExtMessage.addChild(messageConfig)
+	sort.Slice(fieldList, func(i, j int) bool {
+		return fieldList[i].FieldNum-fieldList[j].FieldNum < 0
+	})
+	return fieldList
+}
+
+func (m *MessageConfig) GetFullName() string {
+	return fmt.Sprintf("%s.%s", m.Pkg, m.Name)
+}
+
+func (m *MessageConfig) AddSelfToChildMap() {
+	m.ChildMessageConfigMap[m.MessageIndex] = m
+}
+
+func (m *MessageConfig) setParent(extMessage *MessageConfig, extField *FieldConfig) error {
+	if m.ExtMessage != nil {
+		return errors.New(fmt.Sprintf("modifier:[ext]  only has one in message: %s field:%s", m.GetFullName(), extField.GetDefinition()))
+	}
+	m.ExtMessage = extMessage
+	m.ExtField = extField
+	if len(m.ChildMessageConfigMap) > 0 {
+		for _, messageConfig := range m.ChildMessageConfigMap {
+			err := m.ExtMessage.addChild(messageConfig)
 			if err != nil {
 				return err
 			}
@@ -243,19 +254,19 @@ func (c *MessageConfig) setParent(extMessage *MessageConfig, extField *FieldConf
 	return nil
 }
 
-func (c *MessageConfig) addChild(childMessage *MessageConfig) error {
-	if c.MessageIndex < 0 {
-		return errors.New(fmt.Sprintf("parent message index must > 0 :%s", c.GetFullName()))
+func (m *MessageConfig) addChild(childMessage *MessageConfig) error {
+	if m.MessageIndex < 0 {
+		return errors.New(fmt.Sprintf("parent message index must > 0 :%s", m.GetFullName()))
 	}
-	if childMessage.MessageIndex <= c.MessageIndex {
-		return errors.New(fmt.Sprintf("child index must gt parent index parent:%s:%d child:%s:%d", c.GetFullName(), c.MessageIndex, childMessage.GetFullName(), childMessage.MessageIndex))
+	if childMessage.MessageIndex <= m.MessageIndex {
+		return errors.New(fmt.Sprintf("child index must gt parent index parent:%s:%d child:%s:%d", m.GetFullName(), m.MessageIndex, childMessage.GetFullName(), childMessage.MessageIndex))
 	}
-	old, ok := c.ChildMessageConfigMap[childMessage.MessageIndex]
+	old, ok := m.ChildMessageConfigMap[childMessage.MessageIndex]
 	if ok {
-		return errors.New(fmt.Sprintf("%s child has same index %s : %d", c.GetFullName(), old.GetFullName(), childMessage.MessageIndex))
+		return errors.New(fmt.Sprintf("%s child has same index %s : %d", m.GetFullName(), old.GetFullName(), childMessage.MessageIndex))
 	}
-	if c.ExtMessage != nil {
-		err := c.ExtMessage.addChild(childMessage)
+	if m.ExtMessage != nil {
+		err := m.ExtMessage.addChild(childMessage)
 		if err != nil {
 			return err
 		}
