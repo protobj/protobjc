@@ -167,7 +167,7 @@ func (f *FieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, source
 	panic("UnsupportedOperation")
 }
 func (f *FieldWriter) WritePacked(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType, value string) {
-
+	panic("UnsupportedOperation")
 }
 
 type IFieldReader interface {

@@ -85,6 +85,7 @@ func (receiver FieldType) Value() FieldTypeValue {
 
 type FieldTypeValue struct {
 	FieldType FieldType
+	Name      string
 	JavaType  string
 	GoType    string
 }
@@ -93,27 +94,27 @@ var FieldTypeMap = map[int]FieldTypeValue{}
 
 func init() {
 
-	FieldTypeMap[0] = FieldTypeValue{BOOL, "boolean", "bool"}
-	FieldTypeMap[1] = FieldTypeValue{I8, "byte", "int8"}
-	FieldTypeMap[2] = FieldTypeValue{U8, "byte", "uint8"}
-	FieldTypeMap[3] = FieldTypeValue{I16, "short", "int16"}
-	FieldTypeMap[4] = FieldTypeValue{U16, "short", "uint16"}
-	FieldTypeMap[5] = FieldTypeValue{I32, "int", "int32"}
-	FieldTypeMap[6] = FieldTypeValue{U32, "int", "uint32"}
-	FieldTypeMap[7] = FieldTypeValue{S32, "int", "int32"}
-	FieldTypeMap[8] = FieldTypeValue{F32, "int", "int32"}
-	FieldTypeMap[9] = FieldTypeValue{SF32, "int", "int32"}
-	FieldTypeMap[10] = FieldTypeValue{I64, "long", "int64"}
-	FieldTypeMap[11] = FieldTypeValue{U64, "long", "uint64"}
-	FieldTypeMap[12] = FieldTypeValue{S64, "long", "int64"}
-	FieldTypeMap[13] = FieldTypeValue{F64, "long", "int64"}
-	FieldTypeMap[14] = FieldTypeValue{SF64, "long", "int64"}
-	FieldTypeMap[15] = FieldTypeValue{STRING, "String", "string"}
-	FieldTypeMap[16] = FieldTypeValue{DOUBLE, "double", "float64"}
-	FieldTypeMap[17] = FieldTypeValue{FLOAT, "float", "float32"}
-	FieldTypeMap[18] = FieldTypeValue{MAP, "null", "null"}
-	FieldTypeMap[19] = FieldTypeValue{FEnum, "null", "null"}
-	FieldTypeMap[20] = FieldTypeValue{FMessage, "null", "null"}
+	FieldTypeMap[0] = FieldTypeValue{BOOL, "BOOL", "boolean", "bool"}
+	FieldTypeMap[1] = FieldTypeValue{I8, "I8", "byte", "int8"}
+	FieldTypeMap[2] = FieldTypeValue{U8, "U8", "byte", "uint8"}
+	FieldTypeMap[3] = FieldTypeValue{I16, "I16", "short", "int16"}
+	FieldTypeMap[4] = FieldTypeValue{U16, "U16", "short", "uint16"}
+	FieldTypeMap[5] = FieldTypeValue{I32, "I32", "int", "int32"}
+	FieldTypeMap[6] = FieldTypeValue{U32, "U32", "int", "uint32"}
+	FieldTypeMap[7] = FieldTypeValue{S32, "S32", "int", "int32"}
+	FieldTypeMap[8] = FieldTypeValue{F32, "F32", "int", "int32"}
+	FieldTypeMap[9] = FieldTypeValue{SF32, "SF32", "int", "int32"}
+	FieldTypeMap[10] = FieldTypeValue{I64, "I64", "long", "int64"}
+	FieldTypeMap[11] = FieldTypeValue{U64, "U64", "long", "uint64"}
+	FieldTypeMap[12] = FieldTypeValue{S64, "S64", "long", "int64"}
+	FieldTypeMap[13] = FieldTypeValue{F64, "F64", "long", "int64"}
+	FieldTypeMap[14] = FieldTypeValue{SF64, "SF64", "long", "int64"}
+	FieldTypeMap[15] = FieldTypeValue{STRING, "STRING", "String", "string"}
+	FieldTypeMap[16] = FieldTypeValue{DOUBLE, "DOUBLE", "double", "float64"}
+	FieldTypeMap[17] = FieldTypeValue{FLOAT, "FLOAT", "float", "float32"}
+	FieldTypeMap[18] = FieldTypeValue{MAP, "", "null", "null"}
+	FieldTypeMap[19] = FieldTypeValue{FEnum, "", "null", "null"}
+	FieldTypeMap[20] = FieldTypeValue{FMessage, "", "null", "null"}
 }
 
 type MessageType int32

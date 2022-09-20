@@ -90,10 +90,10 @@ func readMessageStop() string {
 	return "input.readMessageStop(oldLimit);"
 }
 
-func isNotDefault(value string, fieldType *FieldType) string {
-	if *fieldType == BOOL {
+func isNotDefault(value string, fieldType FieldType) string {
+	if fieldType == BOOL {
 		return NI("if (${value} != false) ", "value", value)
-	} else if *fieldType == STRING {
+	} else if fieldType == STRING {
 		return notNull(value)
 	} else {
 		return NI("if (${value} != 0) ", "value", value)
