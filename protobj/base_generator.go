@@ -39,7 +39,7 @@ func (b *BaseGenerator) GetFieldType(sourceMessage *MessageConfig, typeName stri
 	if err != nil {
 		return 0, err
 	}
-	return message.MessageType.toFieldType(), nil
+	return message.MessageType.ToFieldType(), nil
 }
 func (b *BaseGenerator) LanguageType() LanguageType {
 	panic("unsupported func")
@@ -174,7 +174,7 @@ type IFieldReader interface {
 	Modifier() Modifier
 	FocusTypes() map[FieldType]Void
 	Read(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, getValue, setValue string)
-	ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType)
+	ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType) string
 }
 
 type FieldReader struct {
@@ -192,27 +192,27 @@ func (f *FieldReader) Read(generator IGenerator, readBody *CodeBuilder, sourceMe
 	panic("UnsupportedOperation")
 }
 
-func (f *FieldReader) ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType) {
+func (f *FieldReader) ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType) string {
 	panic("UnsupportedOperation")
 }
 
 type MapKeyValueFieldType struct {
-	keyType   FieldType
-	valueType FieldType
+	KeyType   FieldType
+	ValueType FieldType
 }
 
 func NewMapKeyValueFieldType(keyType, valueType FieldType) MapKeyValueFieldType {
-	return MapKeyValueFieldType{keyType: keyType, valueType: valueType}
+	return MapKeyValueFieldType{KeyType: keyType, ValueType: valueType}
 }
 
 type Modifier2FieldType struct {
-	modifier  Modifier
-	fieldType FieldType
+	Modifier  Modifier
+	FieldType FieldType
 }
 
 func NewModifier2FieldType(modifier Modifier, fieldType FieldType) Modifier2FieldType {
 	return Modifier2FieldType{
-		modifier:  modifier,
-		fieldType: fieldType,
+		Modifier:  modifier,
+		FieldType: fieldType,
 	}
 }

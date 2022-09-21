@@ -76,7 +76,7 @@ func FieldTypeValueOf(fieldType string) (FieldType, error) {
 	case "map":
 		return MAP, nil
 	}
-	return 0, errors.New("error fieldType:" + fieldType)
+	return 0, errors.New("error FieldType:" + fieldType)
 }
 
 func (receiver FieldType) Value() FieldTypeValue {
@@ -112,9 +112,9 @@ func init() {
 	FieldTypeMap[15] = FieldTypeValue{STRING, "STRING", "String", "string"}
 	FieldTypeMap[16] = FieldTypeValue{DOUBLE, "DOUBLE", "double", "float64"}
 	FieldTypeMap[17] = FieldTypeValue{FLOAT, "FLOAT", "float", "float32"}
-	FieldTypeMap[18] = FieldTypeValue{MAP, "", "null", "null"}
-	FieldTypeMap[19] = FieldTypeValue{FEnum, "", "null", "null"}
-	FieldTypeMap[20] = FieldTypeValue{FMessage, "", "null", "null"}
+	FieldTypeMap[18] = FieldTypeValue{MAP, "MAP", "null", "null"}
+	FieldTypeMap[19] = FieldTypeValue{FEnum, "FEnum", "null", "null"}
+	FieldTypeMap[20] = FieldTypeValue{FMessage, "FMessage", "null", "null"}
 }
 
 type MessageType int32
@@ -124,7 +124,7 @@ const (
 	ENUM    MessageType = 1
 )
 
-func (receiver MessageType) toFieldType() FieldType {
+func (receiver MessageType) ToFieldType() FieldType {
 	if receiver == MESSAGE {
 		return FMessage
 	}
@@ -150,13 +150,16 @@ var ModifierName = map[int32]string{
 }
 var ModifierValue = reverseMap(ModifierName)
 
+func (m Modifier) Name() string {
+	return ModifierName[int32(m)]
+}
 func ModifierValueOf(str string) (Modifier, error) {
 	value, ok := ModifierValue[strings.ToUpper(str)]
 
 	if ok {
 		return Modifier(value), nil
 	}
-	return 0, errors.New("error modifier " + str)
+	return 0, errors.New("error Modifier " + str)
 }
 
 func (o FieldOption) parseValue(value string) (any, error) {
@@ -240,7 +243,7 @@ func (m *MessageConfig) AddSelfToChildMap() {
 
 func (m *MessageConfig) setParent(extMessage *MessageConfig, extField *FieldConfig) error {
 	if m.ExtMessage != nil {
-		return errors.New(fmt.Sprintf("modifier:[ext]  only has one in message: %s field:%s", m.GetFullName(), extField.GetDefinition()))
+		return errors.New(fmt.Sprintf("Modifier:[ext]  only has one in message: %s field:%s", m.GetFullName(), extField.GetDefinition()))
 	}
 	m.ExtMessage = extMessage
 	m.ExtField = extField

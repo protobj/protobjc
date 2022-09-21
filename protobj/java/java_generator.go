@@ -16,59 +16,107 @@ type Generator struct {
 
 func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Generator {
 
-	generator := &Generator{BaseGenerator: BaseGenerator{
-		MessageConfigMap: messageMap,
-		Config:           config,
-	}}
-	setWriter(generator)
-	setReader(generator)
+	generator := &Generator{
+		BaseGenerator: BaseGenerator{
+			MessageConfigMap: messageMap,
+			Config:           config,
+		},
+		fieldReaderMap: map[Modifier2FieldType]IFieldReader{},
+		fieldWriterMap: map[Modifier2FieldType]IFieldWriter{},
+	}
+	generator.addFieldWriter(&ArrEnumFieldWriter{})
+	generator.addFieldWriter(&ArrMessageFieldWriter{})
+	generator.addFieldWriter(&ArrPrimitiveFieldWriter{})
+	generator.addFieldWriter(&DftEnumFieldWriter{})
+	generator.addFieldWriter(NewDftMapFieldWriter())
+	generator.addFieldWriter(&DftMessageFieldWriter{})
+	generator.addFieldWriter(&DftPrimitiveFieldWriter{})
+	generator.addFieldWriter(&ExtMessageFieldWriter{})
+	generator.addFieldWriter(&LstEnumFieldWriter{})
+	generator.addFieldWriter(&LstMessageFieldWriter{})
+	generator.addFieldWriter(&LstPrimitiveFieldWriter{})
+	generator.addFieldWriter(&SetEnumFieldWriter{})
+	generator.addFieldWriter(&SetMessageFieldWriter{})
+	generator.addFieldWriter(&SetPrimitiveFieldWriter{})
+
+	generator.addFieldReader(&ArrEnumFieldReader{})
+	generator.addFieldReader(&ArrMessageFieldReader{})
+	generator.addFieldReader(&ArrPrimitiveFieldReader{})
+	generator.addFieldReader(&DftEnumFieldReader{})
+	generator.addFieldReader(NewDftMapFieldReader())
+	generator.addFieldReader(&DftMessageFieldReader{})
+	generator.addFieldReader(&DftPrimitiveFieldReader{})
+	generator.addFieldReader(&ExtMessageFieldReader{})
+	generator.addFieldReader(&LstEnumFieldReader{})
+	generator.addFieldReader(&LstMessageFieldReader{})
+	generator.addFieldReader(&LstPrimitiveFieldReader{})
+	generator.addFieldReader(&SetEnumFieldReader{})
+	generator.addFieldReader(&SetMessageFieldReader{})
+	generator.addFieldReader(&SetPrimitiveFieldReader{})
+
 	return generator
 }
 
-func setReader(generator *Generator) {
-
+func (generator *Generator) addFieldReader(fieldReader IFieldReader) {
+	modifier := fieldReader.Modifier()
+	for focusType, _ := range fieldReader.FocusTypes() {
+		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
+		if old, ok := generator.fieldReaderMap[modifier2FieldType]; ok {
+			PrintErrorAndExit(fmt.Sprintf("fieldWriter duplicated %T %T [%s,%s]", fieldReader, old, modifier.Name(), focusType.Value().Name))
+		}
+		generator.fieldReaderMap[modifier2FieldType] = fieldReader
+	}
 }
-func setWriter(generator *Generator) {
 
+func (generator *Generator) addFieldWriter(fieldWriter IFieldWriter) {
+	modifier := fieldWriter.Modifier()
+	for focusType, _ := range fieldWriter.FocusTypes() {
+		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
+		if old, ok := generator.fieldWriterMap[modifier2FieldType]; ok {
+			PrintErrorAndExit(fmt.Sprintf("fieldWriter duplicated %T %T [%s,%s]", fieldWriter, old, modifier.Name(), focusType.Value().Name))
+		}
+		generator.fieldWriterMap[modifier2FieldType] = fieldWriter
+	}
 }
-func (g *Generator) GetWriter(modifier2FieldType Modifier2FieldType) IFieldWriter {
-	writer, ok := g.fieldWriterMap[modifier2FieldType]
+
+func (generator *Generator) GetWriter(modifier2FieldType Modifier2FieldType) IFieldWriter {
+	writer, ok := generator.fieldWriterMap[modifier2FieldType]
 	if !ok {
-		PrintErrorAndExit(fmt.Sprintf("fieldWriter not exists [%v]", modifier2FieldType))
+		PrintErrorAndExit(fmt.Sprintf("fieldWriter not exists [%s,%s]", ModifierName[int32(modifier2FieldType.Modifier)], modifier2FieldType.FieldType.Value().Name))
 	}
 	return writer
 }
-func (g *Generator) GetReader(modifier2FieldType Modifier2FieldType) IFieldReader {
-	reader, ok := g.fieldReaderMap[modifier2FieldType]
+func (generator *Generator) GetReader(modifier2FieldType Modifier2FieldType) IFieldReader {
+	reader, ok := generator.fieldReaderMap[modifier2FieldType]
 	if !ok {
-		PrintErrorAndExit(fmt.Sprintf("fieldReader not exists [%v]", modifier2FieldType))
+		PrintErrorAndExit(fmt.Sprintf("fieldReader not exists [%s,%s]", ModifierName[int32(modifier2FieldType.Modifier)], modifier2FieldType.FieldType.Value().Name))
 	}
 	return reader
 }
 
-func (g *Generator) LanguageType() LanguageType {
+func (generator *Generator) LanguageType() LanguageType {
 	return JAVA
 }
-func (g *Generator) Generate() {
-	messageConfigMap := g.MessageConfigMap
+func (generator *Generator) Generate() {
+	messageConfigMap := generator.MessageConfigMap
 	var waitGroup sync.WaitGroup
 	var fileContentsChan = make(chan *FileContent)
 	for _, messageConfig := range messageConfigMap {
-		if g.Config.OutputType != O_SCHEMA {
+		if generator.Config.OutputType != O_SCHEMA {
 			waitGroup.Add(1)
 			go func(message *MessageConfig) {
 				defer waitGroup.Done()
-				fileContent := g.createMessage(message)
+				fileContent := generator.createMessage(message)
 				if fileContent != nil {
 					fileContentsChan <- fileContent
 				}
 			}(messageConfig)
 		}
-		if g.Config.OutputType != O_MESSAGE {
+		if generator.Config.OutputType != O_MESSAGE {
 			waitGroup.Add(1)
 			go func(message *MessageConfig) {
 				defer waitGroup.Done()
-				fileContent := g.createSchema(message)
+				fileContent := generator.createSchema(message)
 				if fileContent != nil {
 					fileContentsChan <- fileContent
 				}
@@ -89,24 +137,24 @@ func (g *Generator) Generate() {
 		waitGroup.Add(1)
 		go func(content *FileContent) {
 			defer waitGroup.Done()
-			WriteFile(g.Config.OutputDir, fileContent)
+			WriteFile(generator.Config.OutputDir, fileContent)
 		}(fileContent)
 	}
 	waitGroup.Wait()
 }
 
-func (g *Generator) createMessage(m *MessageConfig) *FileContent {
+func (generator *Generator) createMessage(m *MessageConfig) *FileContent {
 	switch m.MessageType {
 	case ENUM:
-		return g.createEnumClass(m)
+		return generator.createEnumClass(m)
 	case MESSAGE:
-		return g.createMessageClass(m)
+		return generator.createMessageClass(m)
 	default:
 		return nil
 	}
 }
 
-func (g *Generator) createEnumClass(m *MessageConfig) *FileContent {
+func (generator *Generator) createEnumClass(m *MessageConfig) *FileContent {
 	header := NewCodeBuilder()
 	header.Add(pkg(m.Pkg)).NewLine(2)
 	if len(m.Note) > 0 {
@@ -123,12 +171,12 @@ func (g *Generator) createEnumClass(m *MessageConfig) *FileContent {
 	}
 	header.Add(";").NewLine()
 	header.Add("}").NewLine()
-	suffix, _ := g.LanguageType().FileSuffix()
+	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName(), ".", string(os.PathSeparator)) + "." + suffix
 	return NewFileContent(fileName, header.String())
 }
 
-func (g *Generator) createMessageClass(m *MessageConfig) *FileContent {
+func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 	header := NewCodeBuilder()
 	header.Add(pkg(m.Pkg)).NewLine(2)
 
@@ -190,7 +238,7 @@ func (g *Generator) createMessageClass(m *MessageConfig) *FileContent {
 			}
 		} else {
 			var typeFullName = field.TypeFullName
-			message, _ := g.FindMessage(m, typeFullName)
+			message, _ := generator.FindMessage(m, typeFullName)
 			switch modifier {
 			case DFT:
 				typeAndImport = NewTypeAndImport(field.TypeName, field.TypeFullName)
@@ -222,7 +270,7 @@ func (g *Generator) createMessageClass(m *MessageConfig) *FileContent {
 	header.AddImportMessages(methods.ImportMessages)
 	appendImportMessagesForJava(m.Pkg, header)
 	header.AddBuilder(fields).AddBuilder(methods).Add("}").NewLine()
-	suffix, _ := g.LanguageType().FileSuffix()
+	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName(), ".", string(os.PathSeparator)) + "." + suffix
 	return NewFileContent(fileName, header.String())
 }
@@ -366,17 +414,17 @@ func getTypeAndImportFromBuiltinType(modifier Modifier, fieldType FieldType) *Ty
 	}
 }
 
-func (g *Generator) createSchema(m *MessageConfig) *FileContent {
+func (generator *Generator) createSchema(m *MessageConfig) *FileContent {
 	switch m.MessageType {
 	case ENUM:
-		return g.createEnumSchema(m)
+		return generator.createEnumSchema(m)
 	case MESSAGE:
-		return g.createMessageSchema(m)
+		return generator.createMessageSchema(m)
 	}
 	return nil
 }
 
-func (g *Generator) createEnumSchema(m *MessageConfig) *FileContent {
+func (generator *Generator) createEnumSchema(m *MessageConfig) *FileContent {
 	p := m.Pkg
 	header := NewCodeBuilder()
 	header.Add(pkg(p)).NewLine(2)
@@ -386,9 +434,9 @@ func (g *Generator) createEnumSchema(m *MessageConfig) *FileContent {
 	header.AddImportMessage("io.protobj.core.Schema")
 	header.AddImportMessage("java.io.IOException")
 
-	var writeBody = g.createEnumWriteBody(m, false)
-	var writeWithFieldNumberBody = g.createEnumWriteBody(m, true)
-	var readBody = g.createEnumReadBody(m)
+	var writeBody = generator.createEnumWriteBody(m, false)
+	var writeWithFieldNumberBody = generator.createEnumWriteBody(m, true)
+	var readBody = generator.createEnumReadBody(m)
 
 	body := NewCodeBuilder()
 	body.Add(N(EnumSchemaTemplate, map[string]interface{}{
@@ -399,12 +447,12 @@ func (g *Generator) createEnumSchema(m *MessageConfig) *FileContent {
 	})).NewLine()
 	appendImportMessagesForJava(p, header)
 	header.AddBuilder(body)
-	suffix, _ := g.LanguageType().FileSuffix()
+	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName()+"Schema", ".", string(os.PathSeparator)) + "." + suffix
 	return NewFileContent(fileName, header.String())
 }
 
-func (g *Generator) createEnumWriteBody(m *MessageConfig, withFieldNum bool) *CodeBuilder {
+func (generator *Generator) createEnumWriteBody(m *MessageConfig, withFieldNum bool) *CodeBuilder {
 	writeBody := NewCodeBuilder()
 	writeBody.SetCurrent(2)
 	writeBody.Add(isNull("message")).Add(LC).NewLine()
@@ -429,7 +477,7 @@ func (g *Generator) createEnumWriteBody(m *MessageConfig, withFieldNum bool) *Co
 	return writeBody
 }
 
-func (g *Generator) createEnumReadBody(m *MessageConfig) *CodeBuilder {
+func (generator *Generator) createEnumReadBody(m *MessageConfig) *CodeBuilder {
 	readBody := NewCodeBuilder()
 	readBody.SetCurrent(2)
 	readBody.Add("int value = input.readI32();").NewLine()
@@ -446,7 +494,7 @@ func (g *Generator) createEnumReadBody(m *MessageConfig) *CodeBuilder {
 	return readBody
 }
 
-func (g *Generator) createMessageSchema(m *MessageConfig) *FileContent {
+func (generator *Generator) createMessageSchema(m *MessageConfig) *FileContent {
 	p := m.Pkg
 	header := NewCodeBuilder()
 	header.Add(pkg(p)).NewLine(2)
@@ -456,8 +504,8 @@ func (g *Generator) createMessageSchema(m *MessageConfig) *FileContent {
 	header.AddImportMessage("io.protobj.core.Schema")
 	header.AddImportMessage("java.io.IOException")
 
-	var writeBody *CodeBuilder = g.createWriteBody(m)
-	var readBody *CodeBuilder = g.createReadBody(m)
+	var writeBody = generator.createWriteBody(m)
+	var readBody = generator.createReadBody(m)
 	body := NewCodeBuilder()
 	body.Add(N(MessageSchemaTemplate, map[string]interface{}{
 		"class":        m.Name,
@@ -470,38 +518,38 @@ func (g *Generator) createMessageSchema(m *MessageConfig) *FileContent {
 	header.AddImportMessages(readBody.ImportMessages)
 	appendImportMessagesForJava(p, header)
 	header.AddBuilder(body)
-	suffix, _ := g.LanguageType().FileSuffix()
+	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName()+"Schema", ".", string(os.PathSeparator)) + "." + suffix
 	return NewFileContent(fileName, header.String())
 
 }
 
-func (g *Generator) createWriteBody(m *MessageConfig) *CodeBuilder {
+func (generator *Generator) createWriteBody(m *MessageConfig) *CodeBuilder {
 	writeBody := NewCodeBuilder()
 	writeBody.SetCurrent(2)
 	for _, field := range m.GetSortedFields() {
 		modifier := field.Modifier
-		fieldType, _ := g.GetFieldType(m, field.TypeName, field.TypeFullName)
-		var fieldWriter = g.GetWriter(NewModifier2FieldType(modifier, fieldType))
+		fieldType, _ := generator.GetFieldType(m, field.TypeName, field.TypeFullName)
+		var fieldWriter = generator.GetWriter(NewModifier2FieldType(modifier, fieldType))
 		getValue := I("message.get${0}()", field.FirstUpperFieldName())
 		writeBody.Add("//").Add(field.GetDefinition()).NewLine()
-		fieldWriter.Write(g, writeBody, m, field, getValue)
+		fieldWriter.Write(generator, writeBody, m, field, getValue)
 	}
 	return writeBody
 }
 
-func (g *Generator) createReadBody(m *MessageConfig) *CodeBuilder {
+func (generator *Generator) createReadBody(m *MessageConfig) *CodeBuilder {
 	readBody := NewCodeBuilder()
 	readBody.SetCurrent(4)
 	for _, field := range m.GetSortedFields() {
 		modifier := field.Modifier
-		fieldType, _ := g.GetFieldType(m, field.TypeName, field.TypeFullName)
-		reader := g.GetReader(NewModifier2FieldType(modifier, fieldType))
+		fieldType, _ := generator.GetFieldType(m, field.TypeName, field.TypeFullName)
+		reader := generator.GetReader(NewModifier2FieldType(modifier, fieldType))
 		getValue := I("message.get${0}()", field.FirstUpperFieldName())
 		setValue := fmt.Sprintf("message.set%s(${value})", field.FirstUpperFieldName())
 		readBody.Add("//").Add(field.GetDefinition()).NewLine()
 		readBody.Add(I("case ${0}: ", field.FieldNum)).Add(LC).NewLine()
-		reader.Read(g, readBody, m, field, getValue, setValue)
+		reader.Read(generator, readBody, m, field, getValue, setValue)
 		readBody.Add("break;").NewLine()
 		readBody.Add(RC).NewLine()
 	}
