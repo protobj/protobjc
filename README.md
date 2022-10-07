@@ -61,3 +61,5 @@ type
 * map
 * enum(custom)
 * message(custom)
+
+已支持：Java
