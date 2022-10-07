@@ -3,9 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io.protobj/protobjc/protobjc"
-	"io.protobj/protobjc/protobjc/java"
-	"io.protobj/protobjc/protobjc/ts"
+	"io.protobj/protobjc"
+	"io.protobj/protobjc/java"
+	"io.protobj/protobjc/ts"
 	"os"
 	"path/filepath"
 	"strings"

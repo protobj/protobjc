@@ -2,7 +2,7 @@ package java
 
 import (
 	"fmt"
-	. "io.protobj/protobjc/protobjc"
+	. "io.protobj/protobjc"
 	"strings"
 )
 

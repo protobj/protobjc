@@ -3,7 +3,7 @@ package protobjc
 import (
 	"fmt"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
-	selfAntlr "io.protobj/protobjc/antlr"
+	selfAntlr "io.protobj/antlr"
 	"strconv"
 	"strings"
 	"sync"

@@ -1,7 +1,7 @@
 package java
 
 import (
-	. "io.protobj/protobjc/protobjc"
+	. "io.protobj/protobjc"
 	"sort"
 	"strings"
 )

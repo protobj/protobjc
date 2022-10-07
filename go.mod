@@ -1,4 +1,4 @@
-module io.protobj/protobjc
+module io.protobj
 
 go 1.19
 
