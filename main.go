@@ -3,9 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io.protobj/protobj-go/protobj"
-	"io.protobj/protobj-go/protobj/java"
-	"io.protobj/protobj-go/protobj/ts"
+	"io.protobj/protobjc/protobjc"
+	"io.protobj/protobjc/protobjc/java"
+	"io.protobj/protobjc/protobjc/ts"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,12 +48,12 @@ func main() {
 	}
 
 	files := getFiles(parsedArgs.SourceDir)
-	messageMap := protobj.Load(files)
+	messageMap := protobjc.Load(files)
 	println("start generate")
 	switch parsedArgs.LanguageType {
-	case protobj.JAVA:
+	case protobjc.JAVA:
 		java.NewGenerator(messageMap, parsedArgs).Generate()
-	case protobj.TS:
+	case protobjc.TS:
 		ts.NewGenerator(messageMap, parsedArgs).Generate()
 	}
 	println("generated...")
@@ -75,11 +75,11 @@ func getFiles(dir string) (files []string) {
 	return files
 }
 
-func parseArgs(args []string) (protobj.ParsedArgs, bool) {
+func parseArgs(args []string) (protobjc.ParsedArgs, bool) {
 	var sourceDir *string
-	var languageType *protobj.LanguageType
+	var languageType *protobjc.LanguageType
 	var outputDir *string
-	var outputType protobj.OutputType
+	var outputType protobjc.OutputType
 	for i := 0; i < len(args); i++ {
 		name := args[i]
 		argsInfo, err := findArgsInfo(name)
@@ -90,15 +90,15 @@ func parseArgs(args []string) (protobj.ParsedArgs, bool) {
 		switch argsType {
 		case Help:
 			printUsage()
-			return protobj.ParsedArgs{}, true
+			return protobjc.ParsedArgs{}, true
 		case SourceDir:
 			sourceDir = &args[i+1]
 			i++
 		case LanguageType:
-			langType, err := protobj.ToLanguageType(args[i+1])
+			langType, err := protobjc.ToLanguageType(args[i+1])
 			if err != nil {
 				println(err.Error())
-				return protobj.ParsedArgs{}, true
+				return protobjc.ParsedArgs{}, true
 			}
 			languageType = &langType
 			i++
@@ -106,24 +106,24 @@ func parseArgs(args []string) (protobj.ParsedArgs, bool) {
 			outputDir = &args[i+1]
 			i++
 		case OutputType:
-			outputType = protobj.ToOutputType(args[i+1])
+			outputType = protobjc.ToOutputType(args[i+1])
 			i++
 		}
 	}
 	if sourceDir == nil {
 		println("source_dir is required")
-		return protobj.ParsedArgs{}, true
+		return protobjc.ParsedArgs{}, true
 	}
 	if languageType == nil {
 		println("language is required")
-		return protobj.ParsedArgs{}, true
+		return protobjc.ParsedArgs{}, true
 	}
 	if outputDir == nil {
 		println("output_dir is required")
-		return protobj.ParsedArgs{}, true
+		return protobjc.ParsedArgs{}, true
 	}
 
-	return protobj.ParsedArgs{
+	return protobjc.ParsedArgs{
 		SourceDir:    *sourceDir,
 		OutputDir:    *outputDir,
 		LanguageType: *languageType,
@@ -133,7 +133,7 @@ func parseArgs(args []string) (protobj.ParsedArgs, bool) {
 
 func printUsage() {
 	for _, info := range argsList {
-		fmt.Println(protobj.I("names:${0} desc:${1} required:${2}", info.names, info.description, info.required))
+		fmt.Println(protobjc.I("names:${0} desc:${1} required:${2}", info.names, info.description, info.required))
 	}
 }
 

@@ -1,9 +1,9 @@
-package protobj
+package protobjc
 
 import (
 	"fmt"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
-	selfAntlr "io.protobj/protobj-go/antlr"
+	selfAntlr "io.protobj/protobjc/antlr"
 	"strconv"
 	"strings"
 	"sync"

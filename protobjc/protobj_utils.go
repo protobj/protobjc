@@ -1,6 +1,7 @@
-package protobj
+package protobjc
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -34,6 +35,8 @@ func WriteFile(outputDir string, content *FileContent) {
 	if err != nil {
 		PrintErrorAndExit(err.Error())
 		return
+	} else {
+		fmt.Printf("write file :%s \n", filePath)
 	}
 }
 

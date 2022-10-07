@@ -1,7 +1,7 @@
 package java
 
 import (
-	. "io.protobj/protobj-go/protobj"
+	. "io.protobj/protobjc/protobjc"
 	"sort"
 	"strings"
 )
@@ -29,7 +29,7 @@ func collectionNotEmpty(value string) string {
 	return NI("if (${value} != null && ${value}.size() > 0) ", "value", value)
 }
 func arrayNotEmpty(value string) string {
-	return NI("if (${value} != null && ${value}.size() > 0) ", "value", value)
+	return NI("if (${value} != null && ${value}.length > 0) ", "value", value)
 }
 
 func stringNotEmpty(value string) string {
@@ -41,7 +41,7 @@ func isNull2(value1, value2 string) string {
 }
 
 func classEquals(object, Class string) string {
-	return NI("(${0}.getClass() == ${1}.class) ", object, Class)
+	return I("(${0}.getClass() == ${1}.class) ", object, Class)
 }
 
 func appendImportMessagesForJava(sourcePackage string, header *CodeBuilder) {

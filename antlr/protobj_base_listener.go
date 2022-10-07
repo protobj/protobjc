@@ -1,4 +1,4 @@
-// Code generated from D:/code/protobj/protobj-java/src/main/resources\Protobj.g4 by ANTLR 4.10.1. DO NOT EDIT.
+// Code generated from D:/code/protobjc/protobjc-java/src/main/resources\Protobj.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package antlr // Protobj
 import "github.com/antlr/antlr4/runtime/Go/antlr"
@@ -23,7 +23,7 @@ func (s *BaseProtobjListener) ExitEveryRule(ctx antlr.ParserRuleContext) {}
 // EnterProtobj is called when production protobj is entered.
 func (s *BaseProtobjListener) EnterProtobj(ctx *ProtobjContext) {}
 
-// ExitProtobj is called when production protobj is exited.
+// ExitProtobj is called when production protobjc is exited.
 func (s *BaseProtobjListener) ExitProtobj(ctx *ProtobjContext) {}
 
 // EnterPackageStatement is called when production packageStatement is entered.

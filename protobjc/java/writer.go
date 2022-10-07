@@ -2,14 +2,22 @@ package java
 
 import (
 	"fmt"
-	. "io.protobj/protobj-go/protobj"
+	. "io.protobj/protobjc/protobjc"
 	"strings"
 )
 
 type SetPrimitiveFieldWriter struct {
-	*FieldWriter
+	FieldWriter
+	notNull func(value string) string
+	suffix  string
 }
 
+func NewSetPrimitiveFieldWriter() *SetPrimitiveFieldWriter {
+	return &SetPrimitiveFieldWriter{
+		notNull: collectionNotEmpty,
+		suffix:  "Set",
+	}
+}
 func (s *SetPrimitiveFieldWriter) Modifier() Modifier {
 	return SET
 }
@@ -29,24 +37,25 @@ func (s *SetPrimitiveFieldWriter) Write(generator IGenerator, writeBody *CodeBui
 	writeBody.Add(s.notNull(value)).Add(LC).NewLine()
 	writeBody.Add(N("output.write${type}${suffix}(${fieldNum}, ${value});", map[string]interface{}{
 		"type":     strings.ToUpper(fieldConfig.TypeName),
-		"suffix":   s.suffix(),
+		"suffix":   s.suffix,
 		"fieldNum": fieldConfig.FieldNum,
 		"value":    value,
 	})).NewLine()
 	writeBody.Add(RC).NewLine()
 }
-func (s *SetPrimitiveFieldWriter) notNull(value string) string {
-	return collectionNotEmpty(value)
-}
-
-func (s *SetPrimitiveFieldWriter) suffix() string {
-	return "Set"
-}
 
 type SetMessageFieldWriter struct {
 	FieldWriter
+	getFieldType func() FieldType
 }
 
+func NewSetMessageFieldWriter() *SetMessageFieldWriter {
+	return &SetMessageFieldWriter{
+		getFieldType: func() FieldType {
+			return FMessage
+		},
+	}
+}
 func (s *SetMessageFieldWriter) Modifier() Modifier {
 	return SET
 }
@@ -55,9 +64,6 @@ func (s *SetMessageFieldWriter) FocusTypes() map[FieldType]Void {
 	return map[FieldType]Void{
 		s.getFieldType(): Empty,
 	}
-}
-func (s *SetMessageFieldWriter) getFieldType() FieldType {
-	return FMessage
 }
 
 func (s *SetMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, value string) {
@@ -79,39 +85,61 @@ type SetEnumFieldWriter struct {
 	SetMessageFieldWriter
 }
 
-func (s *SetEnumFieldWriter) getFieldType() FieldType {
-	return FEnum
+func NewSetEnumFieldWriter() *SetEnumFieldWriter {
+	return &SetEnumFieldWriter{
+		SetMessageFieldWriter{
+			getFieldType: func() FieldType {
+				return FEnum
+			},
+		},
+	}
 }
 
 type LstEnumFieldWriter struct {
 	SetEnumFieldWriter
 }
 
-func (receiver *LstEnumFieldWriter) Modifier() Modifier {
+func NewLstEnumFieldWriter() *LstEnumFieldWriter {
+	return &LstEnumFieldWriter{
+		*NewSetEnumFieldWriter(),
+	}
+}
+func (l *LstEnumFieldWriter) Modifier() Modifier {
 	return LST
 }
 
 type LstPrimitiveFieldWriter struct {
-	*SetPrimitiveFieldWriter
+	SetPrimitiveFieldWriter
 }
 
+func NewLstPrimitiveFieldWriter() *LstPrimitiveFieldWriter {
+	return &LstPrimitiveFieldWriter{
+		SetPrimitiveFieldWriter{
+			notNull: collectionNotEmpty,
+			suffix:  "List",
+		},
+	}
+}
 func (l *LstPrimitiveFieldWriter) Modifier() Modifier {
 	return LST
 }
-func (l *LstPrimitiveFieldWriter) suffix() string {
-	return "List"
-}
 
 type LstMessageFieldWriter struct {
-	*SetMessageFieldWriter
+	SetMessageFieldWriter
 }
 
+func NewLstMessageFieldWriter() *LstMessageFieldWriter {
+	return &LstMessageFieldWriter{
+		*NewSetMessageFieldWriter(),
+	}
+
+}
 func (l *LstMessageFieldWriter) Modifier() Modifier {
 	return LST
 }
 
 type ExtMessageFieldWriter struct {
-	*FieldWriter
+	FieldWriter
 }
 
 func (e *ExtMessageFieldWriter) Modifier() Modifier {
@@ -135,32 +163,40 @@ func (e *ExtMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuild
 }
 
 type ArrPrimitiveFieldWriter struct {
-	*SetPrimitiveFieldWriter
+	SetPrimitiveFieldWriter
+}
+
+func NewArrPrimitiveFieldWriter() *ArrPrimitiveFieldWriter {
+	return &ArrPrimitiveFieldWriter{
+		SetPrimitiveFieldWriter{
+			notNull: arrayNotEmpty,
+			suffix:  "Array",
+		},
+	}
 }
 
 func (a *ArrPrimitiveFieldWriter) Modifier() Modifier {
 	return ARR
 }
-func (a *ArrPrimitiveFieldWriter) notNull(value string) string {
-	return arrayNotEmpty(value)
-}
-
-func (a *ArrPrimitiveFieldWriter) suffix() string {
-	return "Array"
-}
 
 type ArrMessageFieldWriter struct {
-	*FieldWriter
+	FieldWriter
+	getFieldType func() FieldType
+}
+
+func NewArrMessageFieldWriter() *ArrMessageFieldWriter {
+	return &ArrMessageFieldWriter{
+		getFieldType: func() FieldType {
+			return FMessage
+		},
+	}
+
 }
 
 func (rcvr *ArrMessageFieldWriter) FocusTypes() map[FieldType]Void {
 	return map[FieldType]Void{
 		rcvr.getFieldType(): Empty,
 	}
-}
-
-func (rcvr *ArrMessageFieldWriter) getFieldType() FieldType {
-	return FMessage
 }
 
 func (rcvr *ArrMessageFieldWriter) Modifier() Modifier {
@@ -193,17 +229,17 @@ func (rcvr *ArrMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBu
 }
 
 type ArrEnumFieldWriter struct {
-	*ArrMessageFieldWriter
+	ArrMessageFieldWriter
 }
 
-func (a *ArrEnumFieldWriter) FocusTypes() map[FieldType]Void {
-	return map[FieldType]Void{
-		a.getFieldType(): Empty,
+func NewArrEnumFieldWriter() *ArrEnumFieldWriter {
+	return &ArrEnumFieldWriter{
+		ArrMessageFieldWriter{
+			getFieldType: func() FieldType {
+				return FEnum
+			},
+		},
 	}
-}
-
-func (a *ArrEnumFieldWriter) getFieldType() FieldType {
-	return FEnum
 }
 
 func (a *ArrEnumFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, value string) {
@@ -229,7 +265,7 @@ func (a *ArrEnumFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder,
 }
 
 type DftPrimitiveFieldWriter struct {
-	*FieldWriter
+	FieldWriter
 }
 
 func (d *DftPrimitiveFieldWriter) Modifier() Modifier {
@@ -297,7 +333,7 @@ func (d *DftMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuild
 	messageField, _ := generator.FindMessage(sourceMessage, fieldConfig.TypeFullName)
 	if fieldConfig.IsPolymorphic() {
 		index := 0
-		for _, field := range messageField.ChildMessageConfigMap {
+		for _, field := range messageField.GetSortedChildren() {
 			writeBody.AddImportMessage(field.GetFullName())
 			writeBody.AddImportMessage(field.GetFullName() + "Schema")
 			var ifstr string
@@ -330,10 +366,10 @@ func (d *DftMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuild
 
 func (d *DftMessageFieldWriter) WritePacked(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType, value string) {
 
-	messageField, _ := generator.FindMessage(sourceMessage, fieldConfig.TypeFullName)
+	messageField, _ := generator.FindMessage(sourceMessage, fieldConfig.FullMessageName())
 	if fieldConfig.IsPolymorphic() {
 		index := 0
-		for _, field := range messageField.ChildMessageConfigMap {
+		for _, field := range messageField.GetSortedChildren() {
 			writeBody.AddImportMessage(field.GetFullName())
 			writeBody.AddImportMessage(field.GetFullName() + "Schema")
 			var ifstr string
@@ -353,16 +389,17 @@ func (d *DftMessageFieldWriter) WritePacked(generator IGenerator, writeBody *Cod
 			}
 		}
 		writeBody.Add(ELSE).NewLine()
-		writeBody.Add(I("throw new RuntimeException(\"undefine message\"+ ${0}.getClass().getName());", value))
+		writeBody.Add(I("throw new RuntimeException(\"undefine message\"+ ${0}.getClass().getName());", value)).NewLine()
 		writeBody.Add(RC).NewLine()
 	} else {
-		writeBody.AddImportMessage(fieldConfig.TypeFullName)
-		writeBody.AddImportMessage(fieldConfig.TypeFullName + "Schema")
-		writeBody.Add(I("${0}Schema.writeTo(output, ${1}, false);", fieldConfig.TypeName, value)).NewLine()
+		writeBody.AddImportMessage(fieldConfig.FullMessageName())
+		writeBody.AddImportMessage(fieldConfig.FullMessageName() + "Schema")
+		writeBody.Add(I("${0}Schema.writeTo(output, ${1}, false);", fieldConfig.MessageName(), value)).NewLine()
 	}
 }
 
 type DftEnumFieldWriter struct {
+	IFieldWriter
 }
 
 func (d *DftEnumFieldWriter) Modifier() Modifier {
@@ -384,7 +421,7 @@ func (d *DftEnumFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder,
 }
 
 func (d *DftEnumFieldWriter) WritePacked(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType, value string) {
-	messageName := fieldConfig.MessageName
+	messageName := fieldConfig.MessageName()
 	writeBody.AddImportMessage(fieldConfig.FullMessageName())
 	writeBody.AddImportMessage(fieldConfig.FullMessageName() + "Schema")
 	writeBody.Add(I("${0}Schema.writeTo(output, ${1}, false);", messageName, value)).NewLine()
@@ -398,6 +435,7 @@ type IMapFieldWriter interface {
 }
 
 type MapFieldWriter struct {
+	IMapFieldWriter
 }
 
 func (m *MapFieldWriter) FocusTypes() map[MapKeyValueFieldType]Void {
@@ -409,23 +447,12 @@ func (m *MapFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, sou
 }
 
 func (m *MapFieldWriter) UnsupportedKeyType() map[FieldType]Void {
-	m2 := map[FieldType]Void{}
-	for _, value := range FieldTypeMap {
-		if value.FieldType == MAP {
-			continue
-		}
-		if value.FieldType == BOOL {
-			continue
-		}
-		if value.FieldType == FEnum {
-			continue
-		}
-		if value.FieldType == FMessage {
-			continue
-		}
-		m2[value.FieldType] = Empty
+	return map[FieldType]Void{
+		MAP:      Empty,
+		BOOL:     Empty,
+		FEnum:    Empty,
+		FMessage: Empty,
 	}
-	return m2
 }
 
 func (m *MapFieldWriter) UnsupportedValueType() map[FieldType]Void {
@@ -435,7 +462,7 @@ func (m *MapFieldWriter) UnsupportedValueType() map[FieldType]Void {
 }
 
 type DftMapFieldWriter struct {
-	*FieldWriter
+	FieldWriter
 	mapFieldWriterMap map[MapKeyValueFieldType]IMapFieldWriter
 }
 
@@ -454,8 +481,8 @@ func NewDftMapFieldWriter() *DftMapFieldWriter {
 		mapFieldWriterMap: map[MapKeyValueFieldType]IMapFieldWriter{},
 	}
 	writer.addFieldWriter(&Primitive2PrimitiveMapFieldWriter{})
-	writer.addFieldWriter(&Primitive2MessageMapFieldWriter{})
-	writer.addFieldWriter(&String2MessageMapFieldWriter{})
+	writer.addFieldWriter(NewPrimitive2MessageMapFieldWriter())
+	writer.addFieldWriter(NewString2MessageMapFieldWriter())
 	return writer
 }
 
@@ -475,13 +502,13 @@ func (w *DftMapFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, 
 	keyValueFieldType := NewMapKeyValueFieldType(keyType, valueType)
 	mapFieldWriter, ok := w.mapFieldWriterMap[keyValueFieldType]
 	if !ok {
-		PrintErrorAndExit(fmt.Sprintf("unsupported Map<%v,%v>", keyType, valueType))
+		PrintErrorAndExit(fmt.Sprintf("unsupported Map<%v,%v>", keyType.Value().Name, valueType.Value().Name))
 	}
 	mapFieldWriter.Write(generator, writeBody, sourceMessage, fieldConfig, keyValueFieldType, value)
 }
 
 type Primitive2PrimitiveMapFieldWriter struct {
-	*MapFieldWriter
+	MapFieldWriter
 }
 
 func (p *Primitive2PrimitiveMapFieldWriter) FocusTypes() map[MapKeyValueFieldType]Void {
@@ -523,9 +550,31 @@ type MapFieldParam struct {
 }
 
 type Primitive2MessageMapFieldWriter struct {
-	*MapFieldWriter
+	MapFieldWriter
+	getMapFieldParam func(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam
 }
 
+func NewPrimitive2MessageMapFieldWriter() *Primitive2MessageMapFieldWriter {
+	return &Primitive2MessageMapFieldWriter{
+		getMapFieldParam: func(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam {
+			writeBody.AddImportMessage(fmt.Sprintf("it.unimi.dsi.fastutil.%ss.%s2ObjectMap", keyType.Value().JavaType, FirstUpper(keyType.Value().JavaType)))
+			keyJavaType := keyType.Value().JavaType
+			KeyJavaType := FirstUpper(keyJavaType)
+			params := map[string]interface{}{
+				"KeyJavaType": KeyJavaType,
+				"keyJavaType": keyJavaType,
+				"valueType":   fieldConfig.ValueTypeName,
+				"value":       value,
+			}
+			return MapFieldParam{
+				N("${KeyJavaType}2ObjectMap.Entry<${valueType}>", params),
+				N("${value}.${keyJavaType}2ObjectEntrySet()", params),
+				N("entry.get${KeyJavaType}Key()", params),
+				"entry.getValue()",
+			}
+		},
+	}
+}
 func (p *Primitive2MessageMapFieldWriter) FocusTypes() map[MapKeyValueFieldType]Void {
 	m := map[MapKeyValueFieldType]Void{}
 	for _, keyType := range FieldTypeMap {
@@ -574,49 +623,36 @@ func (p *Primitive2MessageMapFieldWriter) Write(generator IGenerator, writeBody 
 	writeBody.Add(RC).NewLine()
 }
 
-func (p *Primitive2MessageMapFieldWriter) getMapFieldParam(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam {
-	writeBody.AddImportMessage(fmt.Sprintf("it.unimi.dsi.fastutil.%ss.%s2ObjectMap", keyType.Value().JavaType, FirstUpper(keyType.Value().JavaType)))
-	keyJavaType := keyType.Value().JavaType
-	KeyJavaType := FirstUpper(keyJavaType)
-	params := map[string]interface{}{
-		"KeyJavaType": KeyJavaType,
-		"keyJavaType": keyJavaType,
-		"valueType":   fieldConfig.ValueTypeName,
-		"value":       value,
-	}
-	return MapFieldParam{
-		N("${KeyJavaType}2ObjectMap.Entry<${valueType}>", params),
-		N("${value}.${keyJavaType}2ObjectEntrySet()", params),
-		N("entry.get${KeyJavaType}Key()", params),
-		"entry.getValue()",
-	}
-}
-
 type String2MessageMapFieldWriter struct {
-	*Primitive2MessageMapFieldWriter
+	Primitive2MessageMapFieldWriter
 }
 
+func NewString2MessageMapFieldWriter() *String2MessageMapFieldWriter {
+	return &String2MessageMapFieldWriter{
+		Primitive2MessageMapFieldWriter{
+			getMapFieldParam: func(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam {
+				writeBody.AddImportMessage("java.util.Map")
+				keyJavaType := keyType.Value().JavaType
+				KeyJavaType := FirstUpper(keyJavaType)
+				params := map[string]interface{}{
+					"KeyJavaType": KeyJavaType,
+					"keyJavaType": keyJavaType,
+					"valueType":   fieldConfig.ValueTypeName,
+					"value":       value,
+				}
+				return MapFieldParam{
+					N("Map.Entry<${KeyJavaType},${valueType}>", params),
+					N("${value}.entrySet()", params),
+					"entry.getKey()",
+					"entry.getValue()",
+				}
+			},
+		},
+	}
+}
 func (s *String2MessageMapFieldWriter) FocusTypes() map[MapKeyValueFieldType]Void {
 	m := map[MapKeyValueFieldType]Void{}
 	m[NewMapKeyValueFieldType(STRING, FMessage)] = Empty
 	m[NewMapKeyValueFieldType(STRING, FEnum)] = Empty
 	return m
-}
-
-func (s *String2MessageMapFieldWriter) getMapFieldParam(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam {
-	writeBody.AddImportMessage("java.util.Map")
-	keyJavaType := keyType.Value().JavaType
-	KeyJavaType := FirstUpper(keyJavaType)
-	params := map[string]interface{}{
-		"KeyJavaType": KeyJavaType,
-		"keyJavaType": keyJavaType,
-		"valueType":   fieldConfig.ValueTypeName,
-		"value":       value,
-	}
-	return MapFieldParam{
-		N("Map.Entry<${KeyJavaType},${valueType}>", params),
-		N("${value}.entrySet()", params),
-		"entry.getKey()",
-		"entry.getValue()",
-	}
 }

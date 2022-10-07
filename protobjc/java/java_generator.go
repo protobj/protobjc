@@ -2,7 +2,7 @@ package java
 
 import (
 	"fmt"
-	. "io.protobj/protobj-go/protobj"
+	. "io.protobj/protobjc/protobjc"
 	"os"
 	"strings"
 	"sync"
@@ -24,35 +24,35 @@ func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Gene
 		fieldReaderMap: map[Modifier2FieldType]IFieldReader{},
 		fieldWriterMap: map[Modifier2FieldType]IFieldWriter{},
 	}
-	generator.addFieldWriter(&ArrEnumFieldWriter{})
-	generator.addFieldWriter(&ArrMessageFieldWriter{})
-	generator.addFieldWriter(&ArrPrimitiveFieldWriter{})
+	generator.addFieldWriter(NewArrEnumFieldWriter())
+	generator.addFieldWriter(NewArrMessageFieldWriter())
+	generator.addFieldWriter(NewArrPrimitiveFieldWriter())
 	generator.addFieldWriter(&DftEnumFieldWriter{})
 	generator.addFieldWriter(NewDftMapFieldWriter())
 	generator.addFieldWriter(&DftMessageFieldWriter{})
 	generator.addFieldWriter(&DftPrimitiveFieldWriter{})
 	generator.addFieldWriter(&ExtMessageFieldWriter{})
-	generator.addFieldWriter(&LstEnumFieldWriter{})
-	generator.addFieldWriter(&LstMessageFieldWriter{})
-	generator.addFieldWriter(&LstPrimitiveFieldWriter{})
-	generator.addFieldWriter(&SetEnumFieldWriter{})
-	generator.addFieldWriter(&SetMessageFieldWriter{})
-	generator.addFieldWriter(&SetPrimitiveFieldWriter{})
+	generator.addFieldWriter(NewLstEnumFieldWriter())
+	generator.addFieldWriter(NewLstMessageFieldWriter())
+	generator.addFieldWriter(NewLstPrimitiveFieldWriter())
+	generator.addFieldWriter(NewSetEnumFieldWriter())
+	generator.addFieldWriter(NewSetMessageFieldWriter())
+	generator.addFieldWriter(NewSetPrimitiveFieldWriter())
 
 	generator.addFieldReader(&ArrEnumFieldReader{})
 	generator.addFieldReader(&ArrMessageFieldReader{})
-	generator.addFieldReader(&ArrPrimitiveFieldReader{})
+	generator.addFieldReader(NewArrPrimitiveFieldReader())
 	generator.addFieldReader(&DftEnumFieldReader{})
 	generator.addFieldReader(NewDftMapFieldReader())
 	generator.addFieldReader(&DftMessageFieldReader{})
 	generator.addFieldReader(&DftPrimitiveFieldReader{})
 	generator.addFieldReader(&ExtMessageFieldReader{})
-	generator.addFieldReader(&LstEnumFieldReader{})
-	generator.addFieldReader(&LstMessageFieldReader{})
-	generator.addFieldReader(&LstPrimitiveFieldReader{})
-	generator.addFieldReader(&SetEnumFieldReader{})
-	generator.addFieldReader(&SetMessageFieldReader{})
-	generator.addFieldReader(&SetPrimitiveFieldReader{})
+	generator.addFieldReader(NewLstEnumFieldReader())
+	generator.addFieldReader(NewLstMessageFieldReader())
+	generator.addFieldReader(NewLstPrimitiveFieldReader())
+	generator.addFieldReader(NewSetEnumFieldReader())
+	generator.addFieldReader(NewSetMessageFieldReader())
+	generator.addFieldReader(NewSetPrimitiveFieldReader())
 
 	return generator
 }
@@ -62,7 +62,7 @@ func (generator *Generator) addFieldReader(fieldReader IFieldReader) {
 	for focusType, _ := range fieldReader.FocusTypes() {
 		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
 		if old, ok := generator.fieldReaderMap[modifier2FieldType]; ok {
-			PrintErrorAndExit(fmt.Sprintf("fieldWriter duplicated %T %T [%s,%s]", fieldReader, old, modifier.Name(), focusType.Value().Name))
+			PrintErrorAndExit(fmt.Sprintf("fieldReader duplicated %T %T [%s,%s]", fieldReader, old, modifier.Name(), focusType.Value().Name))
 		}
 		generator.fieldReaderMap[modifier2FieldType] = fieldReader
 	}

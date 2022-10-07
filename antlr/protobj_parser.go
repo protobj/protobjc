@@ -1,4 +1,4 @@
-// Code generated from D:/code/protobj/protobj-java/src/main/resources\Protobj.g4 by ANTLR 4.10.1. DO NOT EDIT.
+// Code generated from D:/code/protobjc/protobjc-java/src/main/resources\Protobj.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package antlr // Protobj
 import (

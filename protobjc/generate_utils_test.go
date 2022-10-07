@@ -1,4 +1,4 @@
-package protobj
+package protobjc
 
 import (
 	"fmt"

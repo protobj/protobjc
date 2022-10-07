@@ -2,11 +2,18 @@ package java
 
 import (
 	"fmt"
-	. "io.protobj/protobj-go/protobj"
+	. "io.protobj/protobjc/protobjc"
 )
 
 type SetPrimitiveFieldReader struct {
-	*FieldReader
+	FieldReader
+	suffix string
+}
+
+func NewSetPrimitiveFieldReader() *SetPrimitiveFieldReader {
+	return &SetPrimitiveFieldReader{
+		suffix: "Set",
+	}
 }
 
 func (s *SetPrimitiveFieldReader) Modifier() Modifier {
@@ -26,16 +33,23 @@ func (s *SetPrimitiveFieldReader) FocusTypes() map[FieldType]Void {
 
 func (s *SetPrimitiveFieldReader) Read(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, getValue, setValue string) {
 	fieldType, _ := generator.GetFieldType(sourceMessage, fieldConfig.TypeName, fieldConfig.TypeName)
-	value := I("input.read${0}${1}()", fieldType.Value().Name, s.readSuffix())
+	value := I("input.read${0}${1}()", fieldType.Value().Name, s.suffix)
 	readBody.Add(NI(setValue, "value", value)).Add(";").NewLine()
 }
 
-func (s *SetPrimitiveFieldReader) readSuffix() string {
-	return "Set"
+type SetMessageFieldReader struct {
+	FieldReader
+	New func(readBody *CodeBuilder) string
 }
 
-type SetMessageFieldReader struct {
-	*FieldReader
+func NewSetMessageFieldReader() *SetMessageFieldReader {
+	return &SetMessageFieldReader{
+		New: func(readBody *CodeBuilder) string {
+			readBody.AddImportMessage("java.util.HashSet")
+			return "new HashSet<>()"
+		},
+	}
+
 }
 
 func (s *SetMessageFieldReader) Modifier() Modifier {
@@ -62,15 +76,19 @@ func (s *SetMessageFieldReader) Read(generator IGenerator, readBody *CodeBuilder
 	readBody.Add(readMessageStop()).NewLine()
 }
 
-func (s *SetMessageFieldReader) New(readBody *CodeBuilder) string {
-	readBody.AddImportMessage("java.util.HashSet")
-	return "new HashSet<>()"
-}
-
 type SetEnumFieldReader struct {
-	*FieldReader
+	FieldReader
+	New func(readBody *CodeBuilder, fieldTypeName string) string
 }
 
+func NewSetEnumFieldReader() *SetEnumFieldReader {
+	return &SetEnumFieldReader{
+		New: func(readBody *CodeBuilder, fieldTypeName string) string {
+			readBody.AddImportMessage("java.util.EnumSet")
+			return I("EnumSet.noneOf(${0}.class)", fieldTypeName)
+		},
+	}
+}
 func (s *SetEnumFieldReader) Modifier() Modifier {
 	return SET
 }
@@ -90,17 +108,16 @@ func (s *SetEnumFieldReader) Read(generator IGenerator, readBody *CodeBuilder, s
 	readBody.Add(NI("${getValue}.add(${value});", "getValue", getValue, "value", value)).Add(";").NewLine()
 }
 
-func (s *SetEnumFieldReader) New(readBody *CodeBuilder, fieldTypeName string) string {
-	readBody.AddImportMessage("java.util.EnumSet")
-	return I("EnumSet.noneOf(${0}.class)", fieldTypeName)
-}
-
 type LstPrimitiveFieldReader struct {
-	*SetPrimitiveFieldReader
+	SetPrimitiveFieldReader
 }
 
-func (s *LstPrimitiveFieldReader) readSuffix() string {
-	return "List"
+func NewLstPrimitiveFieldReader() *LstPrimitiveFieldReader {
+	return &LstPrimitiveFieldReader{
+		SetPrimitiveFieldReader{
+			suffix: "List",
+		},
+	}
 }
 
 func (s *LstPrimitiveFieldReader) Modifier() Modifier {
@@ -108,33 +125,47 @@ func (s *LstPrimitiveFieldReader) Modifier() Modifier {
 }
 
 type LstMessageFieldReader struct {
-	*SetMessageFieldReader
+	SetMessageFieldReader
 }
 
+func NewLstMessageFieldReader() *LstMessageFieldReader {
+	return &LstMessageFieldReader{
+		SetMessageFieldReader{
+			New: func(readBody *CodeBuilder) string {
+				readBody.AddImportMessage("java.util.ArrayList")
+				return "new ArrayList<>()"
+			},
+		},
+	}
+}
 func (s *LstMessageFieldReader) Modifier() Modifier {
 	return LST
 }
 
-func (s *LstMessageFieldReader) New(readBody *CodeBuilder) string {
-	readBody.AddImportMessage("java.util.ArrayList")
-	return "new ArrayList<>()"
-}
-
 type LstEnumFieldReader struct {
-	*SetEnumFieldReader
+	SetEnumFieldReader
 }
 
+func NewLstEnumFieldReader() *LstEnumFieldReader {
+	return &LstEnumFieldReader{
+		SetEnumFieldReader{
+			New: func(readBody *CodeBuilder, fieldTypeName string) string {
+				readBody.AddImportMessage("java.util.ArrayList")
+				return "new ArrayList<>()"
+			},
+		},
+	}
+}
 func (s *LstEnumFieldReader) Modifier() Modifier {
 	return LST
 }
 
-func (s *LstEnumFieldReader) New(readBody *CodeBuilder, fieldTypeName string) string {
-	readBody.AddImportMessage("java.util.ArrayList")
-	return "new ArrayList<>()"
+func (s *LstEnumFieldReader) getFieldType() FieldType {
+	return FEnum
 }
 
 type ExtMessageFieldReader struct {
-	*FieldReader
+	FieldReader
 }
 
 func (e *ExtMessageFieldReader) Modifier() Modifier {
@@ -149,26 +180,31 @@ func (e *ExtMessageFieldReader) FocusTypes() map[FieldType]Void {
 
 func (e *ExtMessageFieldReader) Read(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, getValue, setValue string) {
 	readBody.AddImportMessage(sourceMessage.GetFullName())
-	readBody.AddImportMessage(I("%sSchema", sourceMessage.GetFullName()))
+	readBody.AddImportMessage(I("${0}Schema", sourceMessage.GetFullName()))
 	readBody.Add(readMessageStart()).NewLine()
 	readBody.Add(I("${0}Schema.mergeFrom(input,message)", fieldConfig.TypeName)).Add(";").NewLine()
 	readBody.Add(readMessageStop()).NewLine()
 }
 
 type ArrPrimitiveFieldReader struct {
-	*SetPrimitiveFieldReader
+	SetPrimitiveFieldReader
+}
+
+func NewArrPrimitiveFieldReader() *ArrPrimitiveFieldReader {
+	return &ArrPrimitiveFieldReader{
+		SetPrimitiveFieldReader{
+			suffix: "Array",
+		},
+	}
+
 }
 
 func (a *ArrPrimitiveFieldReader) Modifier() Modifier {
 	return ARR
 }
 
-func (a *ArrPrimitiveFieldReader) readSuffix() string {
-	return "Array"
-}
-
 type ArrMessageFieldReader struct {
-	*FieldReader
+	FieldReader
 }
 
 func (a *ArrMessageFieldReader) Modifier() Modifier {
@@ -205,7 +241,7 @@ func (a *ArrMessageFieldReader) read0(generator IGenerator, readBody *CodeBuilde
 }
 
 type ArrEnumFieldReader struct {
-	*FieldReader
+	FieldReader
 }
 
 func (a *ArrEnumFieldReader) Modifier() Modifier {
@@ -240,7 +276,7 @@ func (a *ArrEnumFieldReader) Read(generator IGenerator, readBody *CodeBuilder, s
 }
 
 type DftPrimitiveFieldReader struct {
-	*FieldReader
+	FieldReader
 }
 
 func (d *DftPrimitiveFieldReader) Modifier() Modifier {
@@ -271,11 +307,11 @@ func (d *DftPrimitiveFieldReader) Read(generator IGenerator, readBody *CodeBuild
 }
 
 func (d *DftPrimitiveFieldReader) ReadPacked(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType) string {
-	return I("input.read${0}()", fieldType.Value().Name)
+	return I("input.read${0}_NoCheck()", fieldType.Value().Name)
 }
 
 type DftMessageFieldReader struct {
-	*FieldReader
+	FieldReader
 }
 
 func (d *DftMessageFieldReader) Modifier() Modifier {
@@ -305,7 +341,7 @@ func (d *DftMessageFieldReader) ReadPacked(generator IGenerator, readBody *CodeB
 		readBody.Add("int msgIndex = ").Add(reader.ReadPacked(generator, readBody, sourceMessage, fieldConfig, I32)).Add(";").NewLine()
 		readBody.Add(I("${0} packValue = null;", messageName)).NewLine()
 		readBody.Add("switch(msgIndex) ").Add(LC).NewLine()
-		for _, polyMessage := range sourceMessage.ChildMessageConfigMap {
+		for _, polyMessage := range sourceMessage.GetSortedChildren() {
 			readBody.Add(I("case ${0} :", polyMessage.MessageIndex)).Add(LC).NewLine()
 			readBody.Add("packValue = ").Add(d.readPacked0(readBody, polyMessage.Name, polyMessage.GetFullName())).Add(";").NewLine()
 			readBody.Add("break;").NewLine()
@@ -330,7 +366,7 @@ func (d *DftMessageFieldReader) readPacked0(readBody *CodeBuilder, messageName s
 }
 
 type DftEnumFieldReader struct {
-	*DftMessageFieldReader
+	DftMessageFieldReader
 }
 
 func (d *DftEnumFieldReader) FocusTypes() map[FieldType]Void {
@@ -358,7 +394,6 @@ type MapFieldReader struct {
 }
 
 func (m *MapFieldReader) FocusTypes() map[MapKeyValueFieldType]Void {
-	//TODO implement me
 	panic("implement me")
 }
 
@@ -367,23 +402,12 @@ func (m *MapFieldReader) Read(generator IGenerator, readBody *CodeBuilder, sourc
 }
 
 func (m *MapFieldReader) UnsupportedKeyType() map[FieldType]Void {
-	m2 := map[FieldType]Void{}
-	for _, value := range FieldTypeMap {
-		if value.FieldType == MAP {
-			continue
-		}
-		if value.FieldType == BOOL {
-			continue
-		}
-		if value.FieldType == FEnum {
-			continue
-		}
-		if value.FieldType == FMessage {
-			continue
-		}
-		m2[value.FieldType] = Empty
+	return map[FieldType]Void{
+		MAP:      Empty,
+		BOOL:     Empty,
+		FEnum:    Empty,
+		FMessage: Empty,
 	}
-	return m2
 }
 
 func (m *MapFieldReader) UnsupportedValueType() map[FieldType]Void {
@@ -393,7 +417,7 @@ func (m *MapFieldReader) UnsupportedValueType() map[FieldType]Void {
 }
 
 type DftMapFieldReader struct {
-	*FieldReader
+	FieldReader
 	mapFieldReaderMap map[MapKeyValueFieldType]IMapFieldReader
 }
 
@@ -408,7 +432,9 @@ func (d *DftMapFieldReader) addFieldReader(reader IMapFieldReader) {
 }
 
 func NewDftMapFieldReader() *DftMapFieldReader {
-	reader := DftMapFieldReader{}
+	reader := DftMapFieldReader{
+		mapFieldReaderMap: map[MapKeyValueFieldType]IMapFieldReader{},
+	}
 	reader.addFieldReader(&Primitive2PrimitiveMapFieldReader{})
 	reader.addFieldReader(&Primitive2MessageMapFieldReader{})
 	return &reader
@@ -480,7 +506,7 @@ func (p *Primitive2MessageMapFieldReader) Read(generator IGenerator, readBody *C
 }
 
 type Primitive2PrimitiveMapFieldReader struct {
-	*MapFieldReader
+	MapFieldReader
 }
 
 func (p *Primitive2PrimitiveMapFieldReader) FocusTypes() map[MapKeyValueFieldType]Void {

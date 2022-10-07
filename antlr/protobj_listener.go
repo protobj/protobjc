@@ -1,4 +1,4 @@
-// Code generated from D:/code/protobj/protobj-java/src/main/resources\Protobj.g4 by ANTLR 4.10.1. DO NOT EDIT.
+// Code generated from D:/code/protobjc/protobjc-java/src/main/resources\Protobj.g4 by ANTLR 4.10.1. DO NOT EDIT.
 
 package antlr // Protobj
 import "github.com/antlr/antlr4/runtime/Go/antlr"
@@ -7,7 +7,7 @@ import "github.com/antlr/antlr4/runtime/Go/antlr"
 type ProtobjListener interface {
 	antlr.ParseTreeListener
 
-	// EnterProtobj is called when entering the protobj production.
+	// EnterProtobj is called when entering the protobjc production.
 	EnterProtobj(c *ProtobjContext)
 
 	// EnterPackageStatement is called when entering the packageStatement production.
@@ -124,7 +124,7 @@ type ProtobjListener interface {
 	// EnterKeywords is called when entering the keywords production.
 	EnterKeywords(c *KeywordsContext)
 
-	// ExitProtobj is called when exiting the protobj production.
+	// ExitProtobj is called when exiting the protobjc production.
 	ExitProtobj(c *ProtobjContext)
 
 	// ExitPackageStatement is called when exiting the packageStatement production.

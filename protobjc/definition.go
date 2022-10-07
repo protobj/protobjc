@@ -1,4 +1,4 @@
-package protobj
+package protobjc
 
 import (
 	"errors"
@@ -231,6 +231,16 @@ func (m *MessageConfig) GetSortedFields() []*FieldConfig {
 		return fieldList[i].FieldNum-fieldList[j].FieldNum < 0
 	})
 	return fieldList
+}
+func (m *MessageConfig) GetSortedChildren() []*MessageConfig {
+	var childList []*MessageConfig
+	for _, config := range m.ChildMessageConfigMap {
+		childList = append(childList, config)
+	}
+	sort.Slice(childList, func(i, j int) bool {
+		return childList[i].MessageIndex-childList[j].MessageIndex < 0
+	})
+	return childList
 }
 
 func (m *MessageConfig) GetFullName() string {
