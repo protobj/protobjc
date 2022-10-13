@@ -7,8 +7,6 @@ import (
 
 type Generator struct {
 	BaseGenerator
-	fieldWriterMap map[Modifier2FieldType]IFieldWriter
-	fieldReaderMap map[Modifier2FieldType]IFieldReader
 }
 
 func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Generator {
@@ -16,9 +14,9 @@ func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Gene
 		BaseGenerator: BaseGenerator{
 			MessageConfigMap: messageMap,
 			Config:           config,
+			FieldReaderMap:   map[Modifier2FieldType]IFieldReader{},
+			FieldWriterMap:   map[Modifier2FieldType]IFieldWriter{},
 		},
-		fieldReaderMap: map[Modifier2FieldType]IFieldReader{},
-		fieldWriterMap: map[Modifier2FieldType]IFieldWriter{},
 	}
 }
 
