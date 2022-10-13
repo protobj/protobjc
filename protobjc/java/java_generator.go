@@ -10,8 +10,6 @@ import (
 
 type Generator struct {
 	BaseGenerator
-	fieldWriterMap map[Modifier2FieldType]IFieldWriter
-	fieldReaderMap map[Modifier2FieldType]IFieldReader
 }
 
 func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Generator {
@@ -20,78 +18,42 @@ func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Gene
 		BaseGenerator: BaseGenerator{
 			MessageConfigMap: messageMap,
 			Config:           config,
+			FieldReaderMap:   map[Modifier2FieldType]IFieldReader{},
+			FieldWriterMap:   map[Modifier2FieldType]IFieldWriter{},
 		},
-		fieldReaderMap: map[Modifier2FieldType]IFieldReader{},
-		fieldWriterMap: map[Modifier2FieldType]IFieldWriter{},
 	}
-	generator.addFieldWriter(NewArrEnumFieldWriter())
-	generator.addFieldWriter(NewArrMessageFieldWriter())
-	generator.addFieldWriter(NewArrPrimitiveFieldWriter())
-	generator.addFieldWriter(&DftEnumFieldWriter{})
-	generator.addFieldWriter(NewDftMapFieldWriter())
-	generator.addFieldWriter(&DftMessageFieldWriter{})
-	generator.addFieldWriter(&DftPrimitiveFieldWriter{})
-	generator.addFieldWriter(&ExtMessageFieldWriter{})
-	generator.addFieldWriter(NewLstEnumFieldWriter())
-	generator.addFieldWriter(NewLstMessageFieldWriter())
-	generator.addFieldWriter(NewLstPrimitiveFieldWriter())
-	generator.addFieldWriter(NewSetEnumFieldWriter())
-	generator.addFieldWriter(NewSetMessageFieldWriter())
-	generator.addFieldWriter(NewSetPrimitiveFieldWriter())
 
-	generator.addFieldReader(&ArrEnumFieldReader{})
-	generator.addFieldReader(&ArrMessageFieldReader{})
-	generator.addFieldReader(NewArrPrimitiveFieldReader())
-	generator.addFieldReader(&DftEnumFieldReader{})
-	generator.addFieldReader(NewDftMapFieldReader())
-	generator.addFieldReader(&DftMessageFieldReader{})
-	generator.addFieldReader(&DftPrimitiveFieldReader{})
-	generator.addFieldReader(&ExtMessageFieldReader{})
-	generator.addFieldReader(NewLstEnumFieldReader())
-	generator.addFieldReader(NewLstMessageFieldReader())
-	generator.addFieldReader(NewLstPrimitiveFieldReader())
-	generator.addFieldReader(NewSetEnumFieldReader())
-	generator.addFieldReader(NewSetMessageFieldReader())
-	generator.addFieldReader(NewSetPrimitiveFieldReader())
+	generator.AddFieldWriter(NewArrEnumFieldWriter())
+	generator.AddFieldWriter(NewArrMessageFieldWriter())
+	generator.AddFieldWriter(NewArrPrimitiveFieldWriter())
+	generator.AddFieldWriter(&DftEnumFieldWriter{})
+	generator.AddFieldWriter(NewDftMapFieldWriter())
+	generator.AddFieldWriter(&DftMessageFieldWriter{})
+	generator.AddFieldWriter(&DftPrimitiveFieldWriter{})
+	generator.AddFieldWriter(&ExtMessageFieldWriter{})
+	generator.AddFieldWriter(NewLstEnumFieldWriter())
+	generator.AddFieldWriter(NewLstMessageFieldWriter())
+	generator.AddFieldWriter(NewLstPrimitiveFieldWriter())
+	generator.AddFieldWriter(NewSetEnumFieldWriter())
+	generator.AddFieldWriter(NewSetMessageFieldWriter())
+	generator.AddFieldWriter(NewSetPrimitiveFieldWriter())
+
+	generator.AddFieldReader(&ArrEnumFieldReader{})
+	generator.AddFieldReader(&ArrMessageFieldReader{})
+	generator.AddFieldReader(NewArrPrimitiveFieldReader())
+	generator.AddFieldReader(&DftEnumFieldReader{})
+	generator.AddFieldReader(NewDftMapFieldReader())
+	generator.AddFieldReader(&DftMessageFieldReader{})
+	generator.AddFieldReader(&DftPrimitiveFieldReader{})
+	generator.AddFieldReader(&ExtMessageFieldReader{})
+	generator.AddFieldReader(NewLstEnumFieldReader())
+	generator.AddFieldReader(NewLstMessageFieldReader())
+	generator.AddFieldReader(NewLstPrimitiveFieldReader())
+	generator.AddFieldReader(NewSetEnumFieldReader())
+	generator.AddFieldReader(NewSetMessageFieldReader())
+	generator.AddFieldReader(NewSetPrimitiveFieldReader())
 
 	return generator
-}
-
-func (generator *Generator) addFieldReader(fieldReader IFieldReader) {
-	modifier := fieldReader.Modifier()
-	for focusType, _ := range fieldReader.FocusTypes() {
-		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
-		if old, ok := generator.fieldReaderMap[modifier2FieldType]; ok {
-			PrintErrorAndExit(fmt.Sprintf("fieldReader duplicated %T %T [%s,%s]", fieldReader, old, modifier.Name(), focusType.Value().Name))
-		}
-		generator.fieldReaderMap[modifier2FieldType] = fieldReader
-	}
-}
-
-func (generator *Generator) addFieldWriter(fieldWriter IFieldWriter) {
-	modifier := fieldWriter.Modifier()
-	for focusType, _ := range fieldWriter.FocusTypes() {
-		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
-		if old, ok := generator.fieldWriterMap[modifier2FieldType]; ok {
-			PrintErrorAndExit(fmt.Sprintf("fieldWriter duplicated %T %T [%s,%s]", fieldWriter, old, modifier.Name(), focusType.Value().Name))
-		}
-		generator.fieldWriterMap[modifier2FieldType] = fieldWriter
-	}
-}
-
-func (generator *Generator) GetWriter(modifier2FieldType Modifier2FieldType) IFieldWriter {
-	writer, ok := generator.fieldWriterMap[modifier2FieldType]
-	if !ok {
-		PrintErrorAndExit(fmt.Sprintf("fieldWriter not exists [%s,%s]", ModifierName[int32(modifier2FieldType.Modifier)], modifier2FieldType.FieldType.Value().Name))
-	}
-	return writer
-}
-func (generator *Generator) GetReader(modifier2FieldType Modifier2FieldType) IFieldReader {
-	reader, ok := generator.fieldReaderMap[modifier2FieldType]
-	if !ok {
-		PrintErrorAndExit(fmt.Sprintf("fieldReader not exists [%s,%s]", ModifierName[int32(modifier2FieldType.Modifier)], modifier2FieldType.FieldType.Value().Name))
-	}
-	return reader
 }
 
 func (generator *Generator) LanguageType() LanguageType {

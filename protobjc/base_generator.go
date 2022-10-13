@@ -18,33 +18,72 @@ type IGenerator interface {
 type BaseGenerator struct {
 	MessageConfigMap map[string]*MessageConfig
 	Config           ParsedArgs
+	FieldWriterMap   map[Modifier2FieldType]IFieldWriter
+	FieldReaderMap   map[Modifier2FieldType]IFieldReader
 }
 
-func (b *BaseGenerator) FindMessage(source *MessageConfig, messageFullName string) (*MessageConfig, error) {
+func (generator *BaseGenerator) AddFieldReader(fieldReader IFieldReader) {
+	modifier := fieldReader.Modifier()
+	for focusType, _ := range fieldReader.FocusTypes() {
+		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
+		if old, ok := generator.FieldReaderMap[modifier2FieldType]; ok {
+			PrintErrorAndExit(fmt.Sprintf("fieldReader duplicated %T %T [%s,%s]", fieldReader, old, modifier.Name(), focusType.Value().Name))
+		}
+		generator.FieldReaderMap[modifier2FieldType] = fieldReader
+	}
+}
+
+func (generator *BaseGenerator) AddFieldWriter(fieldWriter IFieldWriter) {
+	modifier := fieldWriter.Modifier()
+	for focusType, _ := range fieldWriter.FocusTypes() {
+		modifier2FieldType := NewModifier2FieldType(modifier, focusType)
+		if old, ok := generator.FieldWriterMap[modifier2FieldType]; ok {
+			PrintErrorAndExit(fmt.Sprintf("fieldWriter duplicated %T %T [%s,%s]", fieldWriter, old, modifier.Name(), focusType.Value().Name))
+		}
+		generator.FieldWriterMap[modifier2FieldType] = fieldWriter
+	}
+}
+
+func (generator *BaseGenerator) GetWriter(modifier2FieldType Modifier2FieldType) IFieldWriter {
+	writer, ok := generator.FieldWriterMap[modifier2FieldType]
+	if !ok {
+		PrintErrorAndExit(fmt.Sprintf("fieldWriter not exists [%s,%s]", ModifierName[int32(modifier2FieldType.Modifier)], modifier2FieldType.FieldType.Value().Name))
+	}
+	return writer
+}
+func (generator *BaseGenerator) GetReader(modifier2FieldType Modifier2FieldType) IFieldReader {
+	reader, ok := generator.FieldReaderMap[modifier2FieldType]
+	if !ok {
+		PrintErrorAndExit(fmt.Sprintf("fieldReader not exists [%s,%s]", ModifierName[int32(modifier2FieldType.Modifier)], modifier2FieldType.FieldType.Value().Name))
+	}
+	return reader
+}
+
+func (generator *BaseGenerator) FindMessage(source *MessageConfig, messageFullName string) (*MessageConfig, error) {
 	if len(messageFullName) == 0 {
 		return nil, errors.New(fmt.Sprintf("message not found:%s in %s:%s", "nil", source.FileName, source.Name))
 	}
-	messageConfig, ok := b.MessageConfigMap[messageFullName]
+	messageConfig, ok := generator.MessageConfigMap[messageFullName]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("message not found:%s in %s:%s", messageFullName, source.FileName, source.Name))
 	}
 	return messageConfig, nil
 }
-func (b *BaseGenerator) GetFieldType(sourceMessage *MessageConfig, typeName string, typeFullName string) (FieldType, error) {
+func (generator *BaseGenerator) GetFieldType(sourceMessage *MessageConfig, typeName string, typeFullName string) (FieldType, error) {
 	fieldType, err := FieldTypeValueOf(typeName)
 	if err == nil {
 		return fieldType, nil
 	}
-	message, err := b.FindMessage(sourceMessage, typeFullName)
+	message, err := generator.FindMessage(sourceMessage, typeFullName)
 	if err != nil {
 		return 0, err
 	}
 	return message.MessageType.ToFieldType(), nil
 }
-func (b *BaseGenerator) LanguageType() LanguageType {
+func (generator *BaseGenerator) LanguageType() LanguageType {
 	panic("unsupported func")
 }
-func (b *BaseGenerator) Generate() {
+func (generator *BaseGenerator) Generate() {
 	panic("unsupported func")
 }
 
