@@ -90,6 +90,10 @@ type FieldTypeValue struct {
 	GoType    string
 }
 
+func (y FieldTypeValue) LowerName() string {
+	return strings.ToLower(y.Name)
+}
+
 var FieldTypeMap = map[int]FieldTypeValue{}
 
 func init() {
