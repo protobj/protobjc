@@ -31,7 +31,7 @@ type ArgsInfo struct {
 var argsList = []ArgsInfo{
 	{argsType: Help, names: []string{"-help", "-h"}, description: "帮助", required: false},
 	{argsType: SourceDir, names: []string{"-source_dir", "-s"}, description: "协议文件目录", required: true},
-	{argsType: LanguageType, names: []string{"-language", "-lang"}, description: "生成的语言：Java,Go", required: true},
+	{argsType: LanguageType, names: []string{"-language", "-lang"}, description: "生成的语言：Java,Go,Ts", required: true},
 	{argsType: OutputDir, names: []string{"-output_dir", "-o"}, description: "输出目录", required: true},
 	{argsType: OutputType, names: []string{"-output_type", "-o_type"}, description: "输出选项:all,schema,message 默认:all", required: false},
 }

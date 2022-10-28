@@ -155,7 +155,7 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 		extField := m.ExtField
 		fields.Add("//").Add(extField.GetDefinition()).NewLine()
 		fields.Add(I("public class ${0} extends ${1} {", m.Name, parent.Name)).NewLine(2)
-		fields.AddImportMessage(parent.GetFullName())
+		AddImportMessage(fields, parent.GetFullName())
 	} else {
 		fields.Add(I("public class ${0} {", m.Name)).NewLine(2)
 	}
@@ -228,9 +228,9 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 		}
 		createField(m, fields, methods, field, typeAndImport)
 	}
-	header.AddImportMessages(fields.ImportMessages)
-	header.AddImportMessages(methods.ImportMessages)
-	appendImportMessagesForJava(m.Pkg, header)
+	AddImportMessages(header, fields.ImportMessages)
+	AddImportMessages(header, methods.ImportMessages)
+	appendImportMessages(m.Pkg, header)
 	header.AddBuilder(fields).AddBuilder(methods).Add("}").NewLine()
 	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName(), ".", string(os.PathSeparator)) + "." + suffix
@@ -243,7 +243,7 @@ func createField(m *MessageConfig, fields *CodeBuilder, methods *CodeBuilder, fi
 			if importMessage == typeAndImport.Type {
 				continue
 			}
-			fields.AddImportMessage(importMessage)
+			AddImportMessage(fields, importMessage)
 		}
 	}
 	fields.Add("//").Add(field.GetDefinition()).NewLine()
@@ -391,10 +391,10 @@ func (generator *Generator) createEnumSchema(m *MessageConfig) *FileContent {
 	header := NewCodeBuilder()
 	header.Add(pkg(p)).NewLine(2)
 
-	header.AddImportMessage("io.protobj.core.Input")
-	header.AddImportMessage("io.protobj.core.Output")
-	header.AddImportMessage("io.protobj.core.Schema")
-	header.AddImportMessage("java.io.IOException")
+	AddImportMessage(header, "io.protobj.core.Input")
+	AddImportMessage(header, "io.protobj.core.Output")
+	AddImportMessage(header, "io.protobj.core.Schema")
+	AddImportMessage(header, "java.io.IOException")
 
 	var writeBody = generator.createEnumWriteBody(m, false)
 	var writeWithFieldNumberBody = generator.createEnumWriteBody(m, true)
@@ -407,7 +407,7 @@ func (generator *Generator) createEnumSchema(m *MessageConfig) *FileContent {
 		"writeWithFieldNumberBody": writeWithFieldNumberBody.String(),
 		"readBody":                 readBody.String(),
 	})).NewLine()
-	appendImportMessagesForJava(p, header)
+	appendImportMessages(p, header)
 	header.AddBuilder(body)
 	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName()+"Schema", ".", string(os.PathSeparator)) + "." + suffix
@@ -461,10 +461,10 @@ func (generator *Generator) createMessageSchema(m *MessageConfig) *FileContent {
 	header := NewCodeBuilder()
 	header.Add(pkg(p)).NewLine(2)
 
-	header.AddImportMessage("io.protobj.core.Input")
-	header.AddImportMessage("io.protobj.core.Output")
-	header.AddImportMessage("io.protobj.core.Schema")
-	header.AddImportMessage("java.io.IOException")
+	AddImportMessage(header, "io.protobj.core.Input")
+	AddImportMessage(header, "io.protobj.core.Output")
+	AddImportMessage(header, "io.protobj.core.Schema")
+	AddImportMessage(header, "java.io.IOException")
 
 	var writeBody = generator.createWriteBody(m)
 	var readBody = generator.createReadBody(m)
@@ -476,9 +476,9 @@ func (generator *Generator) createMessageSchema(m *MessageConfig) *FileContent {
 		"messageIndex": m.MessageIndex,
 	})).NewLine()
 
-	header.AddImportMessages(writeBody.ImportMessages)
-	header.AddImportMessages(readBody.ImportMessages)
-	appendImportMessagesForJava(p, header)
+	AddImportMessages(header, writeBody.ImportMessages)
+	AddImportMessages(header, readBody.ImportMessages)
+	appendImportMessages(p, header)
 	header.AddBuilder(body)
 	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName()+"Schema", ".", string(os.PathSeparator)) + "." + suffix

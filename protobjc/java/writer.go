@@ -159,7 +159,7 @@ func (e *ExtMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuild
 	}
 	writeBody.Add(N("output.writeMessage(${fieldNum}, () -> ${typeName}Schema.writeTo(output, message,false));", params)).NewLine()
 	typeFullName := fieldConfig.TypeFullName
-	writeBody.AddImportMessage(I("${0}Schema", typeFullName))
+	AddImportMessage(writeBody, I("${0}Schema", typeFullName))
 }
 
 type ArrPrimitiveFieldWriter struct {
@@ -334,8 +334,8 @@ func (d *DftMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuild
 	if fieldConfig.IsPolymorphic() {
 		index := 0
 		for _, field := range messageField.GetSortedChildren() {
-			writeBody.AddImportMessage(field.GetFullName())
-			writeBody.AddImportMessage(field.GetFullName() + "Schema")
+			AddImportMessage(writeBody, field.GetFullName())
+			AddImportMessage(writeBody, field.GetFullName()+"Schema")
 			var ifstr string
 			if index == 0 {
 				ifstr = IF
@@ -356,8 +356,8 @@ func (d *DftMessageFieldWriter) Write(generator IGenerator, writeBody *CodeBuild
 		writeBody.Add(I("throw new RuntimeException(\"undefine message\"+ ${0}.getClass().getName());", value))
 		writeBody.Add(RC).NewLine()
 	} else {
-		writeBody.AddImportMessage(fieldConfig.TypeFullName)
-		writeBody.AddImportMessage(fieldConfig.TypeFullName + "Schema")
+		AddImportMessage(writeBody, fieldConfig.TypeFullName)
+		AddImportMessage(writeBody, fieldConfig.TypeFullName+"Schema")
 		writeBody.Add(I("output.writeMessage(${0}, () -> ${1}Schema.writeTo(output, ${2}, false));", fieldConfig.FieldNum, fieldConfig.TypeName, value)).NewLine()
 	}
 
@@ -370,8 +370,8 @@ func (d *DftMessageFieldWriter) WritePacked(generator IGenerator, writeBody *Cod
 	if fieldConfig.IsPolymorphic() {
 		index := 0
 		for _, field := range messageField.GetSortedChildren() {
-			writeBody.AddImportMessage(field.GetFullName())
-			writeBody.AddImportMessage(field.GetFullName() + "Schema")
+			AddImportMessage(writeBody, field.GetFullName())
+			AddImportMessage(writeBody, field.GetFullName()+"Schema")
 			var ifstr string
 			if index == 0 {
 				ifstr = IF
@@ -392,8 +392,8 @@ func (d *DftMessageFieldWriter) WritePacked(generator IGenerator, writeBody *Cod
 		writeBody.Add(I("throw new RuntimeException(\"undefine message\"+ ${0}.getClass().getName());", value)).NewLine()
 		writeBody.Add(RC).NewLine()
 	} else {
-		writeBody.AddImportMessage(fieldConfig.FullMessageName())
-		writeBody.AddImportMessage(fieldConfig.FullMessageName() + "Schema")
+		AddImportMessage(writeBody, fieldConfig.FullMessageName())
+		AddImportMessage(writeBody, fieldConfig.FullMessageName()+"Schema")
 		writeBody.Add(I("${0}Schema.writeTo(output, ${1}, false);", fieldConfig.MessageName(), value)).NewLine()
 	}
 }
@@ -414,16 +414,16 @@ func (d *DftEnumFieldWriter) FocusTypes() map[FieldType]Void {
 
 func (d *DftEnumFieldWriter) Write(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, value string) {
 	writeBody.Add(notNull(value)).Add(LC).NewLine()
-	writeBody.AddImportMessage(fieldConfig.TypeFullName)
-	writeBody.AddImportMessage(fieldConfig.TypeFullName + "Schema")
+	AddImportMessage(writeBody, fieldConfig.TypeFullName)
+	AddImportMessage(writeBody, fieldConfig.TypeFullName+"Schema")
 	writeBody.Add(I("${1}Schema.writeWithFieldNumber(${0}, output, ${2});", fieldConfig.FieldNum, fieldConfig.TypeName, value)).NewLine()
 	writeBody.Add(RC).NewLine()
 }
 
 func (d *DftEnumFieldWriter) WritePacked(generator IGenerator, writeBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, fieldType FieldType, value string) {
 	messageName := fieldConfig.MessageName()
-	writeBody.AddImportMessage(fieldConfig.FullMessageName())
-	writeBody.AddImportMessage(fieldConfig.FullMessageName() + "Schema")
+	AddImportMessage(writeBody, fieldConfig.FullMessageName())
+	AddImportMessage(writeBody, fieldConfig.FullMessageName()+"Schema")
 	writeBody.Add(I("${0}Schema.writeTo(output, ${1}, false);", messageName, value)).NewLine()
 }
 
@@ -557,7 +557,7 @@ type Primitive2MessageMapFieldWriter struct {
 func NewPrimitive2MessageMapFieldWriter() *Primitive2MessageMapFieldWriter {
 	return &Primitive2MessageMapFieldWriter{
 		getMapFieldParam: func(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam {
-			writeBody.AddImportMessage(fmt.Sprintf("it.unimi.dsi.fastutil.%ss.%s2ObjectMap", keyType.Value().JavaType, FirstUpper(keyType.Value().JavaType)))
+			AddImportMessage(writeBody, fmt.Sprintf("it.unimi.dsi.fastutil.%ss.%s2ObjectMap", keyType.Value().JavaType, FirstUpper(keyType.Value().JavaType)))
 			keyJavaType := keyType.Value().JavaType
 			KeyJavaType := FirstUpper(keyJavaType)
 			params := map[string]interface{}{
@@ -631,7 +631,7 @@ func NewString2MessageMapFieldWriter() *String2MessageMapFieldWriter {
 	return &String2MessageMapFieldWriter{
 		Primitive2MessageMapFieldWriter{
 			getMapFieldParam: func(writeBody *CodeBuilder, fieldConfig *FieldConfig, value string, keyType FieldType) MapFieldParam {
-				writeBody.AddImportMessage("java.util.Map")
+				AddImportMessage(writeBody, "java.util.Map")
 				keyJavaType := keyType.Value().JavaType
 				KeyJavaType := FirstUpper(keyJavaType)
 				params := map[string]interface{}{

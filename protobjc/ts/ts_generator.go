@@ -98,7 +98,6 @@ func (generator *Generator) createEnumClass(m *MessageConfig) *FileContent {
 		header.NewLine()
 		header.Add(I("${0},", fieldConfig.FieldName)).NewLine()
 	}
-	header.Add(";").NewLine()
 	header.Add("}").NewLine()
 	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName(), ".", string(os.PathSeparator)) + "." + suffix
@@ -108,8 +107,6 @@ func (generator *Generator) createEnumClass(m *MessageConfig) *FileContent {
 func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 	header := NewCodeBuilder()
 	fields := NewCodeBuilder()
-	methods := NewCodeBuilder()
-	methods.SetCurrent(1)
 
 	if len(m.Note) > 0 {
 		fields.Add(I("//${0}", m.Note)).NewLine()
@@ -120,7 +117,7 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 		extField := m.ExtField
 		fields.Add("//").Add(extField.GetDefinition()).NewLine()
 		fields.Add(I("export class ${0} extends ${1} {", m.Name, parent.Name)).NewLine(2)
-		fields.AddImportMessage(parent.GetFullName())
+		AddImportMessage(fields, parent.GetFullName())
 	} else {
 		fields.Add(I("export class ${0} {", m.Name)).NewLine(2)
 	}
@@ -140,26 +137,24 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 				valueFieldType, err := FieldTypeValueOf(field.ValueTypeName)
 				if err == nil {
 					if keyFieldType == STRING && valueFieldType == STRING {
-						typeAndImport = NewTypeAndImport("Map<String,String>", "java.util.Map")
+						typeAndImport = NewTypeAndImport("Map<string,string>")
 					} else if keyFieldType == STRING {
-						mapType := I("Object2${0}Map<String>", FirstUpper(valueFieldType.Value().JavaType))
-						typeAndImport = NewTypeAndImport(mapType, I("it.unimi.dsi.fastutil.objects.Object2${0}Map", FirstUpper(valueFieldType.Value().JavaType)))
+						mapType := I("Map<string,${0}>", valueFieldType.Value().LowerName())
+						typeAndImport = NewTypeAndImport(mapType, I("{ ${0} } from \"protobj-ts\"", valueFieldType.Value().LowerName()))
 					} else if valueFieldType == STRING {
-						mapType := I("${0}2ObjectMap<String>", FirstUpper(keyFieldType.Value().JavaType))
-						typeAndImport = NewTypeAndImport(mapType, I("it.unimi.dsi.fastutil.${0}s.${1}2ObjectMap", keyFieldType.Value().JavaType, FirstUpper(keyFieldType.Value().JavaType)))
+						mapType := I("Map<${0},string>", keyFieldType.Value().LowerName())
+						typeAndImport = NewTypeAndImport(mapType, I("{ ${0} } from \"protobj-ts\"", keyFieldType.Value().LowerName()))
 					} else {
-						mapType := FirstUpper(keyFieldType.Value().JavaType) + "2" + FirstUpper(valueFieldType.Value().JavaType) + "Map"
-						typeAndImport = NewTypeAndImport(mapType, I("it.unimi.dsi.fastutil.${0}s.${1}", keyFieldType.Value().JavaType, mapType))
+						mapType := I("Map<${0},${1}>", keyFieldType.Value().LowerName(), valueFieldType.Value().LowerName())
+						typeAndImport = NewTypeAndImport(mapType, I("{ ${0},${1} } from \"protobj-ts\"", keyFieldType.Value().LowerName(), valueFieldType.Value().LowerName()))
 					}
 				} else {
 					if keyFieldType == STRING {
-						mapType := I("Map<String,${0}>", field.ValueTypeName)
-						typeAndImport = NewTypeAndImport(mapType, "java.util.Map", field.ValueTypeFullName)
+						mapType := I("Map<string,${0}>", field.ValueTypeName)
+						typeAndImport = NewTypeAndImport(mapType, field.ValueTypeFullName)
 					} else {
-						mapType := I("${0}2ObjectMap<${1}>", FirstUpper(keyFieldType.Value().JavaType), field.ValueTypeName)
-						mapType0 := I("${0}2ObjectMap", FirstUpper(keyFieldType.Value().JavaType))
-						typeAndImport = NewTypeAndImport(mapType, I("it.unimi.dsi.fastutil.${0}s.${1}",
-							keyFieldType.Value().JavaType, mapType0), field.ValueTypeFullName)
+						mapType := I("Map<${0},${1}>", keyFieldType.Value().LowerName(), field.ValueTypeName)
+						typeAndImport = NewTypeAndImport(mapType, I("{ ${0} } from \"protobj-ts\"", keyFieldType.Value().LowerName()), field.ValueTypeFullName)
 					}
 				}
 			}
@@ -170,14 +165,9 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 			case DFT:
 				typeAndImport = NewTypeAndImport(field.TypeName, field.TypeFullName)
 			case SET:
-				switch message.MessageType {
-				case ENUM:
-					typeAndImport = NewTypeAndImport(I("EnumSet<${0}>", field.TypeName), field.TypeFullName, "java.util.EnumSet")
-				case MESSAGE:
-					typeAndImport = NewTypeAndImport(I("Set<${0}>", field.TypeName), field.TypeFullName, "java.util.Set")
-				}
+				typeAndImport = NewTypeAndImport(I("Set<${0}>", field.TypeName), field.TypeFullName)
 			case LST:
-				typeAndImport = NewTypeAndImport(I("List<${0}>", field.TypeName), field.TypeFullName, "java.util.List")
+				typeAndImport = NewTypeAndImport(I("Array<${0}>", field.TypeName), field.TypeFullName)
 			case ARR:
 				typeAndImport = NewTypeAndImport(I("${0}[]", field.TypeName), field.TypeFullName)
 			case EXT:
@@ -193,10 +183,9 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 		}
 		createField(m, fields, field, typeAndImport)
 	}
-	header.AddImportMessages(fields.ImportMessages)
-	header.AddImportMessages(methods.ImportMessages)
-	appendImportMessagesForJava(m.Pkg, header)
-	header.AddBuilder(fields).AddBuilder(methods).Add("}").NewLine()
+	AddImportMessages(header, fields.ImportMessages)
+	appendImportMessages(m.Pkg, header)
+	header.AddBuilder(fields).Add("}").NewLine()
 	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName(), ".", string(os.PathSeparator)) + "." + suffix
 	return NewFileContent(fileName, header.String())
@@ -209,13 +198,16 @@ func getTypeAndImportFromBuiltinType(modifier Modifier, fieldType FieldType) *Ty
 	name := fieldType.Value().LowerName()
 	switch modifier {
 	case DFT:
-		return NewTypeAndImport(name, fmt.Sprintf("import { %s } from \"protobj-ts\"", name))
+		if fieldType == STRING {
+			return NewTypeAndImport(name)
+		}
+		return NewTypeAndImport(name, fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	case LST:
-		return NewTypeAndImport("Array<"+name+">", fmt.Sprintf("import { %s } from \"protobj-ts\"", name))
+		return NewTypeAndImport("Array<"+name+">", fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	case SET:
-		return NewTypeAndImport("Set<"+name+">", fmt.Sprintf("import { %s } from \"protobj-ts\"", name))
+		return NewTypeAndImport("Set<"+name+">", fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	case ARR:
-		return NewTypeAndImport(name+"[]", fmt.Sprintf("import { %s } from \"protobj-ts\"", name))
+		return NewTypeAndImport(name+"[]", fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	}
 	return nil
 }
@@ -225,7 +217,7 @@ func createField(m *MessageConfig, fields *CodeBuilder, field *FieldConfig, type
 			if importMessage == typeAndImport.Type {
 				continue
 			}
-			fields.AddImportMessage(importMessage)
+			AddImportMessage(fields, importMessage)
 		}
 	}
 	fields.Add("//").Add(field.GetDefinition()).NewLine()

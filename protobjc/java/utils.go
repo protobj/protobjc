@@ -44,7 +44,7 @@ func classEquals(object, Class string) string {
 	return I("(${0}.getClass() == ${1}.class) ", object, Class)
 }
 
-func appendImportMessagesForJava(sourcePackage string, header *CodeBuilder) {
+func appendImportMessages(sourcePackage string, header *CodeBuilder) {
 	importList := distinctPackageForJava(sourcePackage, header.ImportMessages)
 	var javaCoreLibPrefix = "java."
 	sort.Slice(importList, func(i, j int) bool {
@@ -97,5 +97,16 @@ func isNotDefault(value string, fieldType FieldType) string {
 		return notNull(value)
 	} else {
 		return NI("if (${value} != 0) ", "value", value)
+	}
+}
+
+func AddImportMessage(b *CodeBuilder, importMessage string) {
+	if len(importMessage) > 0 {
+		b.ImportMessages[importMessage] = Empty
+	}
+}
+func AddImportMessages(b *CodeBuilder, importMessages map[string]Void) {
+	for k, _ := range importMessages {
+		AddImportMessage(b, k)
 	}
 }

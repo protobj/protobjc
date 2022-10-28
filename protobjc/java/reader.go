@@ -45,7 +45,7 @@ type SetMessageFieldReader struct {
 func NewSetMessageFieldReader() *SetMessageFieldReader {
 	return &SetMessageFieldReader{
 		New: func(readBody *CodeBuilder) string {
-			readBody.AddImportMessage("java.util.HashSet")
+			AddImportMessage(readBody, "java.util.HashSet")
 			return "new HashSet<>()"
 		},
 	}
@@ -84,7 +84,7 @@ type SetEnumFieldReader struct {
 func NewSetEnumFieldReader() *SetEnumFieldReader {
 	return &SetEnumFieldReader{
 		New: func(readBody *CodeBuilder, fieldTypeName string) string {
-			readBody.AddImportMessage("java.util.EnumSet")
+			AddImportMessage(readBody, "java.util.EnumSet")
 			return I("EnumSet.noneOf(${0}.class)", fieldTypeName)
 		},
 	}
@@ -132,7 +132,7 @@ func NewLstMessageFieldReader() *LstMessageFieldReader {
 	return &LstMessageFieldReader{
 		SetMessageFieldReader{
 			New: func(readBody *CodeBuilder) string {
-				readBody.AddImportMessage("java.util.ArrayList")
+				AddImportMessage(readBody, "java.util.ArrayList")
 				return "new ArrayList<>()"
 			},
 		},
@@ -150,7 +150,7 @@ func NewLstEnumFieldReader() *LstEnumFieldReader {
 	return &LstEnumFieldReader{
 		SetEnumFieldReader{
 			New: func(readBody *CodeBuilder, fieldTypeName string) string {
-				readBody.AddImportMessage("java.util.ArrayList")
+				AddImportMessage(readBody, "java.util.ArrayList")
 				return "new ArrayList<>()"
 			},
 		},
@@ -179,8 +179,8 @@ func (e *ExtMessageFieldReader) FocusTypes() map[FieldType]Void {
 }
 
 func (e *ExtMessageFieldReader) Read(generator IGenerator, readBody *CodeBuilder, sourceMessage *MessageConfig, fieldConfig *FieldConfig, getValue, setValue string) {
-	readBody.AddImportMessage(sourceMessage.GetFullName())
-	readBody.AddImportMessage(I("${0}Schema", sourceMessage.GetFullName()))
+	AddImportMessage(readBody, sourceMessage.GetFullName())
+	AddImportMessage(readBody, I("${0}Schema", sourceMessage.GetFullName()))
 	readBody.Add(readMessageStart()).NewLine()
 	readBody.Add(I("${0}Schema.mergeFrom(input,message)", fieldConfig.TypeName)).Add(";").NewLine()
 	readBody.Add(readMessageStop()).NewLine()
@@ -360,8 +360,8 @@ func (d *DftMessageFieldReader) ReadPacked(generator IGenerator, readBody *CodeB
 	}
 }
 func (d *DftMessageFieldReader) readPacked0(readBody *CodeBuilder, messageName string, messageFullName string) string {
-	readBody.AddImportMessage(messageFullName)
-	readBody.AddImportMessage(messageFullName + "Schema")
+	AddImportMessage(readBody, messageFullName)
+	AddImportMessage(readBody, messageFullName+"Schema")
 	return I("${0}Schema.mergeFrom(input,null)", messageName)
 }
 
@@ -484,11 +484,11 @@ func (p *Primitive2MessageMapFieldReader) Read(generator IGenerator, readBody *C
 	keyType := keyValueType.KeyType
 	var newMap string
 	if keyType != STRING {
-		readBody.AddImportMessage(NI("it.unimi.dsi.fastutil.${keyType}s.${KeyType}2ObjectOpenHashMap",
+		AddImportMessage(readBody, NI("it.unimi.dsi.fastutil.${keyType}s.${KeyType}2ObjectOpenHashMap",
 			"keyType", keyType.Value().JavaType, "KeyType", FirstUpper(keyType.Value().JavaType)))
 		newMap = NI("new ${KeyType}2ObjectOpenHashMap<>()", "KeyType", FirstUpper(keyType.Value().JavaType))
 	} else {
-		readBody.AddImportMessage("java.util.HashMap")
+		AddImportMessage(readBody, "java.util.HashMap")
 		newMap = "new HashMap<>()"
 	}
 	readBody.Add(NI(setValue, "value", newMap)).Add(";").NewLine()

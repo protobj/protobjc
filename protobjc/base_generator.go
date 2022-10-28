@@ -127,17 +127,6 @@ func (b *CodeBuilder) String() string {
 	return b.builder.String()
 }
 
-func (b *CodeBuilder) AddImportMessage(importMessage string) {
-	if len(importMessage) > 0 {
-		b.ImportMessages[importMessage] = Empty
-	}
-}
-func (b *CodeBuilder) AddImportMessages(importMessages map[string]Void) {
-	for k, _ := range importMessages {
-		b.AddImportMessage(k)
-	}
-}
-
 func (b *CodeBuilder) NewLine(count ...int) {
 	if len(count) == 0 {
 		count = []int{1}
