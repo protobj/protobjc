@@ -310,7 +310,7 @@ func (d *DftPrimitiveFieldWriter) WritePacked(generator IGenerator, writeBody *C
 		"type":  fieldType.Value().Name,
 		"value": value,
 	}
-	writeBody.Add(N("output.write${type}(${value});", params)).NewLine()
+	writeBody.Add(N("output.write${type}_Packed(${value});", params)).NewLine()
 }
 
 type DftMessageFieldWriter struct {
