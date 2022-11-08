@@ -203,10 +203,19 @@ func getTypeAndImportFromBuiltinType(modifier Modifier, fieldType FieldType) *Ty
 		}
 		return NewTypeAndImport(name, fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	case LST:
+		if fieldType == STRING {
+			return NewTypeAndImport("Array<" + name + ">")
+		}
 		return NewTypeAndImport("Array<"+name+">", fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	case SET:
+		if fieldType == STRING {
+			return NewTypeAndImport("Set<" + name + ">")
+		}
 		return NewTypeAndImport("Set<"+name+">", fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	case ARR:
+		if fieldType == STRING {
+			return NewTypeAndImport(name + "[]")
+		}
 		return NewTypeAndImport(name+"[]", fmt.Sprintf("{ %s } from \"protobj-ts\"", name))
 	}
 	return nil
