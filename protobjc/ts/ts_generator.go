@@ -13,7 +13,7 @@ type Generator struct {
 }
 
 func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Generator {
-	return &Generator{
+	generator := Generator{
 		BaseGenerator: BaseGenerator{
 			MessageConfigMap: messageMap,
 			Config:           config,
@@ -21,6 +21,37 @@ func NewGenerator(messageMap map[string]*MessageConfig, config ParsedArgs) *Gene
 			FieldWriterMap:   map[Modifier2FieldType]IFieldWriter{},
 		},
 	}
+
+	generator.AddFieldWriter(NewArrEnumFieldWriter())
+	generator.AddFieldWriter(NewArrMessageFieldWriter())
+	generator.AddFieldWriter(NewArrPrimitiveFieldWriter())
+	generator.AddFieldWriter(&DftEnumFieldWriter{})
+	generator.AddFieldWriter(NewDftMapFieldWriter())
+	generator.AddFieldWriter(&DftMessageFieldWriter{})
+	generator.AddFieldWriter(&DftPrimitiveFieldWriter{})
+	generator.AddFieldWriter(&ExtMessageFieldWriter{})
+	generator.AddFieldWriter(NewLstEnumFieldWriter())
+	generator.AddFieldWriter(NewLstMessageFieldWriter())
+	generator.AddFieldWriter(NewLstPrimitiveFieldWriter())
+	generator.AddFieldWriter(NewSetEnumFieldWriter())
+	generator.AddFieldWriter(NewSetMessageFieldWriter())
+	generator.AddFieldWriter(NewSetPrimitiveFieldWriter())
+
+	generator.AddFieldReader(&ArrEnumFieldReader{})
+	generator.AddFieldReader(&ArrMessageFieldReader{})
+	generator.AddFieldReader(NewArrPrimitiveFieldReader())
+	generator.AddFieldReader(&DftEnumFieldReader{})
+	generator.AddFieldReader(NewDftMapFieldReader())
+	generator.AddFieldReader(&DftMessageFieldReader{})
+	generator.AddFieldReader(&DftPrimitiveFieldReader{})
+	generator.AddFieldReader(&ExtMessageFieldReader{})
+	generator.AddFieldReader(NewLstEnumFieldReader())
+	generator.AddFieldReader(NewLstMessageFieldReader())
+	generator.AddFieldReader(NewLstPrimitiveFieldReader())
+	generator.AddFieldReader(NewSetEnumFieldReader())
+	generator.AddFieldReader(NewSetMessageFieldReader())
+	generator.AddFieldReader(NewSetPrimitiveFieldReader())
+	return &generator
 }
 
 func (b *Generator) LanguageType() LanguageType {
@@ -184,7 +215,7 @@ func (generator *Generator) createMessageClass(m *MessageConfig) *FileContent {
 		createField(m, fields, field, typeAndImport)
 	}
 	AddImportMessages(header, fields.ImportMessages)
-	appendImportMessages(m.Pkg, header)
+	appendImportMessages(m.Pkg, m.GetFullName(), header)
 	header.AddBuilder(fields).Add("}").NewLine()
 	suffix, _ := generator.LanguageType().FileSuffix()
 	fileName := strings.ReplaceAll(m.GetFullName(), ".", string(os.PathSeparator)) + "." + suffix
@@ -244,28 +275,129 @@ func (generator *Generator) createSchema(m *MessageConfig) *FileContent {
 }
 
 func (generator *Generator) createEnumSchema(m *MessageConfig) *FileContent {
-	return nil
+	header := NewCodeBuilder()
+	AddImportMessage(header, "{ Input } from \"protobj-ts\"")
+	AddImportMessage(header, "{ Output } from \"protobj-ts\"")
+	AddImportMessage(header, "{ Schema } from \"protobj-ts\"")
+	AddImportMessage(header, m.GetFullName())
+	var writeBody = generator.createEnumWriteBody(m, false)
+	var writeWithFieldNumberBody = generator.createEnumWriteBody(m, true)
+	var readBody = generator.createEnumReadBody(m)
+	body := NewCodeBuilder()
+	body.Add(N(EnumSchemaTemplate, map[string]interface{}{
+		"class":                    m.Name,
+		"writeBody":                writeBody.String(),
+		"writeWithFieldNumberBody": writeWithFieldNumberBody.String(),
+		"readBody":                 readBody.String(),
+	})).NewLine()
+	appendImportMessages(m.Pkg, m.GetFullName()+"Schema", header)
+	header.AddBuilder(body)
+	suffix, _ := generator.LanguageType().FileSuffix()
+	fileName := strings.ReplaceAll(m.GetFullName()+"Schema", ".", string(os.PathSeparator)) + "." + suffix
+	return NewFileContent(fileName, header.String())
 }
 
 func (generator *Generator) createEnumWriteBody(m *MessageConfig, withFieldNum bool) *CodeBuilder {
-	return nil
+	writeBody := NewCodeBuilder()
+	writeBody.SetCurrent(2)
+	writeBody.Add(isNull("message")).Add(LC).NewLine()
+	writeBody.Add("output.writeI8_Packed(0);").NewLine()
+	writeBody.Add("return;").NewLine()
+	writeBody.Add(RC).NewLine()
+	writeBody.Add("switch (message) ").Add(LC).NewLine()
+	for _, value := range m.GetSortedFields() {
+		writeBody.Add(I("case ${0}.${1}: ", m.Name, value.FieldName)).Add(LC).NewLine()
+		if withFieldNum {
+			writeBody.Add(I("output.writeI32(fieldNum,${0});", value.FieldNum)).NewLine()
+		} else {
+			writeBody.Add(I("output.writeI8_Packed(${0});", value.FieldNum)).NewLine()
+		}
+		writeBody.Add("break;").NewLine()
+		writeBody.Add(RC).NewLine()
+	}
+	writeBody.Add("default: ").Add(LC).NewLine()
+	writeBody.Add("throw new Error(\"undefine enum \" + message);").NewLine()
+	writeBody.Add(RC).NewLine()
+	writeBody.Add(RC).NewLine()
+	return writeBody
 }
 
 func (generator *Generator) createEnumReadBody(m *MessageConfig) *CodeBuilder {
-	return nil
+	readBody := NewCodeBuilder()
+	readBody.SetCurrent(2)
+	readBody.Add("const value = input.readI32();").NewLine()
+	readBody.Add("switch (value) ").Add(LC).NewLine()
+	for _, value := range m.GetSortedFields() {
+		readBody.Add(I("case ${0}: ", value.FieldNum)).Add(LC).NewLine()
+		readBody.Add(I("return ${0}.${1};", m.Name, value.FieldName)).NewLine()
+		readBody.Add(RC).NewLine()
+	}
+	readBody.Add("default: ").Add(LC).NewLine()
+	readBody.Add("return null;").NewLine()
+	readBody.Add(RC).NewLine()
+	readBody.Add(RC).NewLine()
+	return readBody
 }
 
 func (generator *Generator) createMessageSchema(m *MessageConfig) *FileContent {
-	return nil
+	p := m.Pkg
+	header := NewCodeBuilder()
+
+	AddImportMessage(header, "{ Input } from \"protobj-ts\"")
+	AddImportMessage(header, "{ Output } from \"protobj-ts\"")
+	AddImportMessage(header, "{ Schema } from \"protobj-ts\"")
+	AddImportMessage(header, m.GetFullName())
+
+	var writeBody = generator.createWriteBody(m)
+	var readBody = generator.createReadBody(m)
+	body := NewCodeBuilder()
+	body.Add(N(MessageSchemaTemplate, map[string]interface{}{
+		"class":        m.Name,
+		"writeBody":    writeBody.String(),
+		"readBody":     readBody.String(),
+		"messageIndex": m.MessageIndex,
+	})).NewLine()
+
+	AddImportMessages(header, writeBody.ImportMessages)
+	AddImportMessages(header, readBody.ImportMessages)
+	appendImportMessages(p, m.GetFullName()+"Schema", header)
+	header.AddBuilder(body)
+	suffix, _ := generator.LanguageType().FileSuffix()
+	fileName := strings.ReplaceAll(m.GetFullName()+"Schema", ".", string(os.PathSeparator)) + "." + suffix
+	return NewFileContent(fileName, header.String())
 
 }
 
 func (generator *Generator) createWriteBody(m *MessageConfig) *CodeBuilder {
-	return nil
+	writeBody := NewCodeBuilder()
+	writeBody.SetCurrent(2)
+	for _, field := range m.GetSortedFields() {
+		modifier := field.Modifier
+		fieldType, _ := generator.GetFieldType(m, field.TypeName, field.TypeFullName)
+		var fieldWriter = generator.GetWriter(NewModifier2FieldType(modifier, fieldType))
+		getValue := I("message.${0}", field.FieldName)
+		writeBody.Add("//").Add(field.GetDefinition()).NewLine()
+		fieldWriter.Write(generator, writeBody, m, field, getValue)
+	}
+	return writeBody
 }
 
 func (generator *Generator) createReadBody(m *MessageConfig) *CodeBuilder {
-	return nil
+	readBody := NewCodeBuilder()
+	readBody.SetCurrent(4)
+	for _, field := range m.GetSortedFields() {
+		modifier := field.Modifier
+		fieldType, _ := generator.GetFieldType(m, field.TypeName, field.TypeFullName)
+		reader := generator.GetReader(NewModifier2FieldType(modifier, fieldType))
+		getValue := I("message.${0}", field.FieldName)
+		setValue := fmt.Sprintf("message.%s=${value}", field.FieldName)
+		readBody.Add("//").Add(field.GetDefinition()).NewLine()
+		readBody.Add(I("case ${0}: ", field.FieldNum)).Add(LC).NewLine()
+		reader.Read(generator, readBody, m, field, getValue, setValue)
+		readBody.Add("break;").NewLine()
+		readBody.Add(RC).NewLine()
+	}
+	return readBody
 }
 
 type TypeAndImport struct {
