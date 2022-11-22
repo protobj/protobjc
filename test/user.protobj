@@ -1,0 +1,25 @@
+package user;//定义包名
+
+import person.Person;//引入的其他文件类型
+
+
+message User[1] {
+    ext Person person = 1;
+    arr Person personArr = 2;
+    arr Person personArrMorphic = 3[polymorphic=true];
+    lst i32 i32List = 4;
+    arr bool boolArr = 5;
+    map<string,i32> stringI32Map = 6;
+    map<i8,i16> i8i16Map = 7;
+}
+
+message Worker[2]{
+    ext Person person = 2;
+    set i32 num = 1;
+}
+//定义枚举
+enum PersonType{
+    other = 0;//其他
+    worker = 1;//工人
+    boss = 2;//老板
+}

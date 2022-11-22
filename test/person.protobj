@@ -1,0 +1,11 @@
+package person;
+
+//message Person
+message Person[0] {
+    i32 type = 1;//字段描述
+}
+enum PersonChildEnum {
+    Person = 0;
+    User = 1;
+    Worker = 2;
+}
