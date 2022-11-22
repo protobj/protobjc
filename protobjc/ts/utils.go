@@ -104,7 +104,7 @@ func readMessageStop() string {
 func isNotDefault(value string, fieldType FieldType) string {
 	if fieldType == BOOL {
 		return NI("if (${value} != false) ", "value", value)
-	} else if fieldType == STRING {
+	} else if fieldType == STRING || fieldType == I64 || fieldType == U64 || fieldType == S64 || fieldType == F64 || fieldType == SF64 {
 		return notNull(value)
 	} else {
 		return NI("if (${value} != 0) ", "value", value)
